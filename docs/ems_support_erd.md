@@ -192,6 +192,25 @@ Stores both system users and administrators.
 ## SQL
 
 ```sql
+
+-- =========================
+-- USER ROLES
+-- =========================
+
+CREATE TABLE user_roles (
+    id INT UNSIGNED PRIMARY KEY,
+    name VARCHAR(20) NOT NULL UNIQUE
+);
+
+INSERT INTO user_roles (id, name) VALUES
+    (1, 'USER'),
+    (2, 'ADMIN');
+
+
+-- =========================
+-- USERS
+-- =========================
+
 CREATE TABLE users (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
@@ -199,7 +218,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
 
-    role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
+    role_id INT UNSIGNED NOT NULL DEFAULT 1,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
 
     email_verified_at DATETIME NULL,
@@ -209,8 +228,12 @@ CREATE TABLE users (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
-    INDEX idx_users_role (role),
-    INDEX idx_users_active (is_active),
+    CONSTRAINT fk_users_role
+        FOREIGN KEY (role_id)
+        REFERENCES user_roles(id)
+        ON DELETE RESTRICT,
+
+    INDEX idx_users_role (role_id),
     INDEX idx_users_created_at (created_at)
 );
 ```
@@ -260,8 +283,7 @@ CREATE TABLE ticket_categories (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
-    INDEX idx_categories_active (is_active),
-    INDEX idx_categories_sort_order (sort_order)
+    INDEX idx_categories_active_sort (is_active, sort_order)
 );
 ```
 
@@ -294,6 +316,7 @@ Each subcategory belongs to one main category.
 ```sql
 CREATE TABLE ticket_sub_categories (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
     category_id BIGINT UNSIGNED NOT NULL,
 
     name VARCHAR(100) NOT NULL,
@@ -308,12 +331,12 @@ CREATE TABLE ticket_sub_categories (
     CONSTRAINT fk_subcategory_category
         FOREIGN KEY (category_id)
         REFERENCES ticket_categories(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
     UNIQUE KEY uq_subcategory_category_name (category_id, name),
-    INDEX idx_subcategories_category (category_id),
-    INDEX idx_subcategories_active (is_active)
+
+    INDEX idx_subcategories_category_active_sort
+        (category_id, is_active, sort_order)
 );
 ```
 
@@ -441,6 +464,31 @@ COMPLETED
 ## SQL
 
 ```sql
+-- =========================================================
+-- TICKET STATUSES
+-- =========================================================
+
+CREATE TABLE ticket_statuses (
+    id INT UNSIGNED PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+INSERT INTO ticket_statuses (id, name) VALUES
+    (1, 'OPEN'),
+    (2, 'PENDING_REVIEW'),
+    (3, 'ACCEPTED'),
+    (4, 'IN_PROGRESS'),
+    (5, 'WAITING_FOR_USER'),
+    (6, 'RESOLVED'),
+    (7, 'CLOSED'),
+    (8, 'REJECTED'),
+    (9, 'REOPENED');
+
+
+-- =========================================================
+-- TICKETS
+-- =========================================================
+
 CREATE TABLE tickets (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
@@ -468,17 +516,7 @@ CREATE TABLE tickets (
         'CRITICAL'
     ) NULL,
 
-    status ENUM(
-        'OPEN',
-        'PENDING_REVIEW',
-        'ACCEPTED',
-        'IN_PROGRESS',
-        'WAITING_FOR_USER',
-        'RESOLVED',
-        'CLOSED',
-        'REJECTED',
-        'REOPENED'
-    ) NOT NULL DEFAULT 'PENDING_REVIEW',
+    status_id INT UNSIGNED NOT NULL DEFAULT 2,
 
     rejection_reason TEXT NULL,
     resolution_summary LONGTEXT NULL,
@@ -501,40 +539,58 @@ CREATE TABLE tickets (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
+
+    -- =====================================================
+    -- FOREIGN KEYS
+    -- =====================================================
+
+    -- User → Tickets
     CONSTRAINT fk_ticket_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
+    -- Category → Tickets
     CONSTRAINT fk_ticket_category
         FOREIGN KEY (category_id)
         REFERENCES ticket_categories(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
+    -- Subcategory → Tickets
     CONSTRAINT fk_ticket_subcategory
         FOREIGN KEY (sub_category_id)
         REFERENCES ticket_sub_categories(id)
-        ON DELETE SET NULL
-        ON UPDATE CASCADE,
+        ON DELETE SET NULL,
 
+    -- SLA Policy → Tickets
     CONSTRAINT fk_ticket_sla
         FOREIGN KEY (sla_policy_id)
         REFERENCES sla_policies(id)
-        ON DELETE SET NULL
-        ON UPDATE CASCADE,
+        ON DELETE SET NULL,
+
+    -- Status → Tickets
+    CONSTRAINT fk_ticket_status
+        FOREIGN KEY (status_id)
+        REFERENCES ticket_statuses(id)
+        ON DELETE RESTRICT,
+
+
+    -- =====================================================
+    -- INDEXES
+    -- =====================================================
 
     INDEX idx_tickets_user (user_id),
     INDEX idx_tickets_category (category_id),
     INDEX idx_tickets_subcategory (sub_category_id),
-    INDEX idx_tickets_status (status),
+    INDEX idx_tickets_status (status_id),
     INDEX idx_tickets_user_priority (user_priority),
     INDEX idx_tickets_admin_priority (admin_priority),
     INDEX idx_tickets_created_at (created_at),
     INDEX idx_tickets_resolution_due (resolution_due_at),
     INDEX idx_tickets_sla_status (sla_status),
-    INDEX idx_tickets_user_status_created (user_id, status, created_at)
+
+    INDEX idx_tickets_user_status_created
+        (user_id, status_id, created_at)
 );
 ```
 
