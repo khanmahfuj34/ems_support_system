@@ -1,13 +1,12 @@
 # EMS Support System
 
 > **Database:** MySQL 8.x  
-> **ORM:** None  
+> **ORM:** Prisma  
 > **Data Access:** Raw SQL  
 > **Backend:** NestJS + TypeScript  
 > **Frontend:** Next.js + TypeScript  
 > **File Storage:** Cloudinary  
 > **API:** REST API  
-> **Timezone:** Asia/Dhaka (GMT+6)
 
 ---
 
@@ -55,26 +54,26 @@ NestJS
 
 ---
 
-# 2. ERD Scope
+## 2. ERD Scope
 
-The database contains these **12 core tables**:
+The database contains these **14 tables**:
 
 | # | Table | Purpose |
 |---|---|---|
-| 1 | `users` | Authentication, authorization and user/admin identity |
-| 2 | `ticket_categories` | Main ticket categories |
-| 3 | `ticket_sub_categories` | Category-specific subcategories |
-| 4 | `sla_policies` | Priority-based SLA configuration |
-| 5 | `tickets` | Central support ticket entity |
-| 6 | `ticket_comments` | User/Admin conversation |
-| 7 | `ticket_attachments` | Ticket file/image metadata |
-| 8 | `ticket_internal_notes` | Admin-only internal notes |
-| 9 | `ticket_status_history` | Complete status transition history |
-| 10 | `ticket_activity_logs` | Complete ticket activity history |
-| 11 | `notifications` | Database-backed notifications |
-| 12 | `audit_logs` | System/security audit trail |
-
----
+| 1 | `user_roles` | System-defined user roles (`USER`, `ADMIN`) |
+| 2 | `users` | Authentication, authorization and user/admin identity |
+| 3 | `ticket_statuses` | System-defined ticket status lookup |
+| 4 | `ticket_categories` | Main ticket categories |
+| 5 | `ticket_sub_categories` | Category-specific subcategories |
+| 6 | `sla_policies` | Priority-based SLA configuration |
+| 7 | `tickets` | Central support ticket entity |
+| 8 | `ticket_comments` | User/Admin conversation |
+| 9 | `ticket_attachments` | Ticket file/image metadata |
+| 10 | `ticket_internal_notes` | Admin-only internal notes |
+| 11 | `ticket_status_history` | Complete status transition history |
+| 12 | `ticket_activity_logs` | Complete ticket activity history |
+| 13 | `notifications` | Database-backed notifications |
+| 14 | `audit_logs` | System/security audit trail |
 
 # 3. High-Level ERD
 
@@ -426,13 +425,13 @@ Every major ticket-related table references this table.
 | `description` | LONGTEXT | | NO | Rich-text description |
 | `user_priority` | ENUM | IDX | NO | User-selected priority |
 | `admin_priority` | ENUM | IDX | YES | Admin-adjusted priority |
-| `status` | ENUM | IDX | NO | Current status |
+| `status_id` | INT UNSIGNED | FK | NO | Current status |
 | `rejection_reason` | TEXT | | YES | Rejection reason |
 | `resolution_summary` | LONGTEXT | | YES | Resolution details |
 | `first_response_at` | DATETIME | | YES | Actual first response |
 | `first_response_due_at` | DATETIME | | YES | SLA response deadline |
 | `resolution_due_at` | DATETIME | IDX | YES | SLA resolution deadline |
-| `sla_status` | ENUM | IDX | NO | Current SLA state |
+| `sla_status` | INT UNSIGNED | IDX | NO | Current SLA state |
 | `resolved_at` | DATETIME | IDX | YES | Resolution time |
 | `closed_at` | DATETIME | IDX | YES | Closure time |
 | `created_at` | TIMESTAMP | IDX | NO | Creation time |
