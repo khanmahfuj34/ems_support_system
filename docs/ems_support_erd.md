@@ -525,12 +525,11 @@ CREATE TABLE tickets (
     first_response_due_at DATETIME NULL,
     resolution_due_at DATETIME NULL,
 
-    sla_status ENUM(
-        'ON_TRACK',
-        'WARNING',
-        'BREACHED',
-        'COMPLETED'
-    ) NOT NULL DEFAULT 'ON_TRACK',
+    -- 1 = ON_TRACK
+    -- 2 = WARNING
+    -- 3 = BREACHED
+    -- 4 = COMPLETED
+    sla_status INT UNSIGNED NOT NULL DEFAULT 1,
 
     resolved_at DATETIME NULL,
     closed_at DATETIME NULL,
@@ -689,18 +688,15 @@ CREATE TABLE ticket_comments (
     CONSTRAINT fk_comment_ticket
         FOREIGN KEY (ticket_id)
         REFERENCES tickets(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_comment_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
-    INDEX idx_comments_ticket (ticket_id),
-    INDEX idx_comments_user (user_id),
-    INDEX idx_comments_ticket_created (ticket_id, created_at)
+    INDEX idx_comments_ticket_created (ticket_id, created_at),
+    INDEX idx_comments_user (user_id)
 );
 ```
 
@@ -747,14 +743,12 @@ CREATE TABLE ticket_attachments (
     CONSTRAINT fk_attachment_ticket
         FOREIGN KEY (ticket_id)
         REFERENCES tickets(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_attachment_user
         FOREIGN KEY (uploaded_by)
         REFERENCES users(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
     INDEX idx_attachments_ticket (ticket_id),
     INDEX idx_attachments_uploaded_by (uploaded_by)
@@ -794,18 +788,15 @@ CREATE TABLE ticket_internal_notes (
     CONSTRAINT fk_internal_note_ticket
         FOREIGN KEY (ticket_id)
         REFERENCES tickets(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_internal_note_admin
         FOREIGN KEY (admin_id)
         REFERENCES users(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
-    INDEX idx_internal_notes_ticket (ticket_id),
-    INDEX idx_internal_notes_admin (admin_id),
-    INDEX idx_internal_notes_ticket_created (ticket_id, created_at)
+    INDEX idx_internal_notes_ticket_created (ticket_id,created_at),
+    INDEX idx_internal_notes_admin (admin_id)
 );
 ```
 
@@ -822,8 +813,8 @@ Stores every ticket status transition.
 | `id` | BIGINT UNSIGNED | PK | NO |
 | `ticket_id` | BIGINT UNSIGNED | FK | NO |
 | `changed_by` | BIGINT UNSIGNED | FK | NO |
-| `old_status` | ENUM | | YES |
-| `new_status` | ENUM | | NO |
+| `old_status_id` | INT UNSIGNED | | YES |
+| `new_status_id` | INT UNSIGNED | | NO |
 | `reason` | TEXT | | YES |
 | `created_at` | TIMESTAMP | | NO |
 
@@ -836,29 +827,8 @@ CREATE TABLE ticket_status_history (
     ticket_id BIGINT UNSIGNED NOT NULL,
     changed_by BIGINT UNSIGNED NOT NULL,
 
-    old_status ENUM(
-        'OPEN',
-        'PENDING_REVIEW',
-        'ACCEPTED',
-        'IN_PROGRESS',
-        'WAITING_FOR_USER',
-        'RESOLVED',
-        'CLOSED',
-        'REJECTED',
-        'REOPENED'
-    ) NULL,
-
-    new_status ENUM(
-        'OPEN',
-        'PENDING_REVIEW',
-        'ACCEPTED',
-        'IN_PROGRESS',
-        'WAITING_FOR_USER',
-        'RESOLVED',
-        'CLOSED',
-        'REJECTED',
-        'REOPENED'
-    ) NOT NULL,
+    old_status_id INT UNSIGNED NULL,
+    new_status_id INT UNSIGNED NOT NULL,
 
     reason TEXT NULL,
 
@@ -867,18 +837,28 @@ CREATE TABLE ticket_status_history (
     CONSTRAINT fk_status_history_ticket
         FOREIGN KEY (ticket_id)
         REFERENCES tickets(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
-    CONSTRAINT fk_status_history_user
+    CONSTRAINT fk_status_history_changed_by
         FOREIGN KEY (changed_by)
         REFERENCES users(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
-    INDEX idx_status_history_ticket (ticket_id),
-    INDEX idx_status_history_changed_by (changed_by),
-    INDEX idx_status_history_ticket_created (ticket_id, created_at)
+    CONSTRAINT fk_status_history_old_status
+        FOREIGN KEY (old_status_id)
+        REFERENCES ticket_statuses(id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_status_history_new_status
+        FOREIGN KEY (new_status_id)
+        REFERENCES ticket_statuses(id)
+        ON DELETE RESTRICT,
+
+    INDEX idx_status_history_ticket_created
+        (ticket_id, created_at),
+
+    INDEX idx_status_history_changed_by
+        (changed_by)
 );
 ```
 
@@ -975,19 +955,17 @@ CREATE TABLE ticket_activity_logs (
     CONSTRAINT fk_activity_ticket
         FOREIGN KEY (ticket_id)
         REFERENCES tickets(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_activity_actor
         FOREIGN KEY (actor_id)
         REFERENCES users(id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON DELETE RESTRICT,
 
-    INDEX idx_activity_ticket (ticket_id),
+    INDEX idx_activity_ticket_created (ticket_id, created_at),
     INDEX idx_activity_actor (actor_id),
-    INDEX idx_activity_action (action),
-    INDEX idx_activity_ticket_created (ticket_id, created_at)
+    INDEX idx_activity_action (action)
+    
 );
 ```
 
@@ -1058,19 +1036,16 @@ CREATE TABLE notifications (
     CONSTRAINT fk_notification_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_notification_ticket
         FOREIGN KEY (ticket_id)
         REFERENCES tickets(id)
-        ON DELETE CASCADE
-        ON UPDATE CASCADE,
+        ON DELETE CASCADE,
 
-    INDEX idx_notifications_user (user_id),
     INDEX idx_notifications_ticket (ticket_id),
-    INDEX idx_notifications_read (is_read),
     INDEX idx_notifications_user_read_created (user_id, is_read, created_at)
+    
 );
 ```
 
@@ -1139,8 +1114,7 @@ CREATE TABLE audit_logs (
     CONSTRAINT fk_audit_actor
         FOREIGN KEY (actor_id)
         REFERENCES users(id)
-        ON DELETE SET NULL
-        ON UPDATE CASCADE,
+        ON DELETE SET NULL,
 
     INDEX idx_audit_actor (actor_id),
     INDEX idx_audit_action (action),
