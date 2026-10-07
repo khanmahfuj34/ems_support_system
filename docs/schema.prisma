@@ -1,0 +1,355 @@
+// EMS Support System
+// Prisma ORM + MySQL
+// Source of truth: project PRD + ERD + requirements
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("priority_enum")
+}
+
+// -----------------------------------------------------------------------------
+// SYSTEM LOOKUP TABLES
+// -----------------------------------------------------------------------------
+
+model UserRole {
+  id   Int    @id @db.UnsignedInt
+  name String @unique @db.VarChar(20)
+
+  users User[]
+
+  @@map("user_roles")
+}
+
+model TicketStatus {
+  id   Int    @id @db.UnsignedInt
+  name String @unique @db.VarChar(50)
+
+  tickets              Ticket[]
+  oldStatusHistories   TicketStatusHistory[] @relation("OldStatus")
+  newStatusHistories   TicketStatusHistory[] @relation("NewStatus")
+
+  @@map("ticket_statuses")
+}
+
+// -----------------------------------------------------------------------------
+// USERS
+// -----------------------------------------------------------------------------
+
+model User {
+  id                BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name              String   @db.VarChar(150)
+  email             String   @unique @db.VarChar(255)
+  password          String   @db.VarChar(255)
+  roleId            Int      @default(1) @map("role_id") @db.UnsignedInt
+  isActive          Boolean  @default(true) @map("is_active")
+  emailVerifiedAt   DateTime? @map("email_verified_at") @db.DateTime(3)
+  lastLoginAt       DateTime? @map("last_login_at") @db.DateTime(3)
+  createdAt         DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  role              UserRole @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tickets           Ticket[]
+  comments          TicketComment[]
+  attachments       TicketAttachment[]
+  internalNotes     TicketInternalNote[]
+  statusChanges     TicketStatusHistory[]
+  activities        TicketActivityLog[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@index([roleId])
+  @@index([createdAt])
+  @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+// CATEGORIES
+// -----------------------------------------------------------------------------
+
+model TicketCategory {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  subCategories TicketSubCategory[]
+  tickets       Ticket[]
+
+  @@index([isActive, sortOrder])
+  @@map("ticket_categories")
+}
+
+model TicketSubCategory {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  categoryId  BigInt   @map("category_id") @db.UnsignedBigInt
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  category TicketCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  tickets  Ticket[]
+
+  @@unique([categoryId, name])
+  @@index([categoryId, isActive, sortOrder])
+  @@map("ticket_sub_categories")
+}
+
+// -----------------------------------------------------------------------------
+// SLA
+// -----------------------------------------------------------------------------
+
+model SlaPolicy {
+  id                   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  priority             Priority @unique
+  firstResponseMinutes Int      @map("first_response_minutes") @db.UnsignedInt
+  resolutionMinutes    Int      @map("resolution_minutes") @db.UnsignedInt
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  tickets Ticket[]
+
+  @@index([isActive])
+  @@map("sla_policies")
+}
+
+// -----------------------------------------------------------------------------
+// TICKETS
+// -----------------------------------------------------------------------------
+
+model Ticket {
+  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketNumber       String    @unique @map("ticket_number") @db.VarChar(30)
+
+  userId             BigInt    @map("user_id") @db.UnsignedBigInt
+  categoryId         BigInt    @map("category_id") @db.UnsignedBigInt
+  subCategoryId      BigInt?   @map("sub_category_id") @db.UnsignedBigInt
+  slaPolicyId        BigInt?   @map("sla_policy_id") @db.UnsignedBigInt
+
+  subject            String    @db.VarChar(255)
+  description        String    @db.LongText
+
+  userPriority       Priority  @default(MEDIUM) @map("user_priority")
+  adminPriority      Priority? @map("admin_priority")
+  statusId           Int       @default(2) @map("status_id") @db.UnsignedInt
+
+  rejectionReason    String?   @map("rejection_reason") @db.Text
+  resolutionSummary  String?   @map("resolution_summary") @db.LongText
+
+  firstResponseAt    DateTime? @map("first_response_at") @db.DateTime(3)
+  firstResponseDueAt DateTime? @map("first_response_due_at") @db.DateTime(3)
+  resolutionDueAt    DateTime? @map("resolution_due_at") @db.DateTime(3)
+
+  // 1 = ON_TRACK, 2 = WARNING, 3 = BREACHED, 4 = COMPLETED
+  slaStatus          Int       @default(1) @map("sla_status") @db.UnsignedInt
+
+  resolvedAt         DateTime? @map("resolved_at") @db.DateTime(3)
+  closedAt           DateTime? @map("closed_at") @db.DateTime(3)
+
+  createdAt          DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  category           TicketCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  subCategory        TicketSubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  slaPolicy          SlaPolicy?         @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  status             TicketStatus       @relation(fields: [statusId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  comments           TicketComment[]
+  attachments        TicketAttachment[]
+  internalNotes      TicketInternalNote[]
+  statusHistory      TicketStatusHistory[]
+  activityLogs       TicketActivityLog[]
+  notifications      Notification[]
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([statusId])
+  @@index([userPriority])
+  @@index([adminPriority])
+  @@index([createdAt])
+  @@index([resolutionDueAt])
+  @@index([slaStatus])
+  @@index([userId, statusId, createdAt])
+  @@map("tickets")
+}
+
+// -----------------------------------------------------------------------------
+// TICKET COMMENTS / CONVERSATION
+// -----------------------------------------------------------------------------
+
+model TicketComment {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketId  BigInt   @map("ticket_id") @db.UnsignedBigInt
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  content   String   @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId])
+  @@index([ticketId, createdAt])
+  @@map("ticket_comments")
+}
+
+// -----------------------------------------------------------------------------
+// ATTACHMENTS / CLOUDINARY METADATA
+// -----------------------------------------------------------------------------
+
+model TicketAttachment {
+  id                  BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketId            BigInt   @map("ticket_id") @db.UnsignedBigInt
+  uploadedBy          BigInt   @map("uploaded_by") @db.UnsignedBigInt
+  fileName            String   @map("file_name") @db.VarChar(255)
+  fileUrl             String   @map("file_url") @db.Text
+  cloudinaryPublicId  String?  @map("cloudinary_public_id") @db.VarChar(255)
+  mimeType            String   @map("mime_type") @db.VarChar(100)
+  fileSize            BigInt   @map("file_size") @db.UnsignedBigInt
+  resourceType        String?  @map("resource_type") @db.VarChar(50)
+  createdAt           DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  ticket     Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  uploader   User   @relation(fields: [uploadedBy], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([ticketId])
+  @@index([uploadedBy])
+  @@map("ticket_attachments")
+}
+
+// -----------------------------------------------------------------------------
+// PRIVATE ADMIN NOTES
+// -----------------------------------------------------------------------------
+
+model TicketInternalNote {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketId  BigInt   @map("ticket_id") @db.UnsignedBigInt
+  adminId   BigInt   @map("admin_id") @db.UnsignedBigInt
+  content   String   @db.LongText
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  admin  User   @relation(fields: [adminId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([adminId])
+  @@index([ticketId, createdAt])
+  @@map("ticket_internal_notes")
+}
+
+// -----------------------------------------------------------------------------
+// STATUS HISTORY
+// -----------------------------------------------------------------------------
+
+model TicketStatusHistory {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketId    BigInt   @map("ticket_id") @db.UnsignedBigInt
+  changedBy   BigInt   @map("changed_by") @db.UnsignedBigInt
+  oldStatusId Int?     @map("old_status_id") @db.UnsignedInt
+  newStatusId Int      @map("new_status_id") @db.UnsignedInt
+  reason      String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  ticket     Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  actor      User         @relation(fields: [changedBy], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  oldStatus  TicketStatus? @relation("OldStatus", fields: [oldStatusId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  newStatus  TicketStatus  @relation("NewStatus", fields: [newStatusId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([ticketId, createdAt])
+  @@index([changedBy])
+  @@map("ticket_status_history")
+}
+
+// -----------------------------------------------------------------------------
+// TICKET ACTIVITY LOG
+// -----------------------------------------------------------------------------
+
+model TicketActivityLog {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketId   BigInt   @map("ticket_id") @db.UnsignedBigInt
+  actorId    BigInt   @map("actor_id") @db.UnsignedBigInt
+  action     String   @db.VarChar(100)
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  actor  User   @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([ticketId, createdAt])
+  @@index([actorId])
+  @@map("ticket_activity_logs")
+}
+
+// -----------------------------------------------------------------------------
+// NOTIFICATIONS
+// -----------------------------------------------------------------------------
+
+model Notification {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  ticketId  BigInt?  @map("ticket_id") @db.UnsignedBigInt
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  type      String   @db.VarChar(50)
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  ticket Ticket? @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([ticketId])
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+// -----------------------------------------------------------------------------
+// AUDIT LOGS
+// -----------------------------------------------------------------------------
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  actorId   BigInt?  @map("actor_id") @db.UnsignedBigInt
+  action    String   @db.VarChar(100)
+  entity    String   @db.VarChar(100)
+  entityId  BigInt?  @map("entity_id") @db.UnsignedBigInt
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
