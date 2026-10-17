@@ -1,0 +1,5 @@
+name: Local Devolapment
+values:
+  - key: baseURL
+    value: ''
+color: 120
