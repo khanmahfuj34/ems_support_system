@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { Prisma, Priority } from '@prisma/client';
@@ -377,5 +378,170 @@ export class TicketsService {
     };
   }
 
-  // Keep your existing create() method here without changing it.
+  async getById(ticketId: string, user: TicketListUser) {
+    if (!/^[1-9]\d*$/.test(ticketId)) {
+      throw new BadRequestException('Invalid ticket ID');
+    }
+
+    if (!/^[1-9]\d*$/.test(user.id)) {
+      throw new UnauthorizedException('Invalid authenticated user');
+    }
+
+    const where: Prisma.TicketWhereInput = {
+      id: BigInt(ticketId),
+    };
+
+    // Restrict regular users to their own tickets.
+    if (Number(user.roleId) !== 2) {
+      where.userId = BigInt(user.id);
+    }
+
+    const ticket = await this.prisma.ticket.findFirst({
+      where,
+      select: {
+        id: true,
+        ticketNumber: true,
+        subject: true,
+        description: true,
+        userId: true,
+        categoryId: true,
+        subCategoryId: true,
+        userPriority: true,
+        adminPriority: true,
+        statusId: true,
+        rejectionReason: true,
+        resolutionSummary: true,
+        slaStatus: true,
+        firstResponseAt: true,
+        firstResponseDueAt: true,
+        resolutionDueAt: true,
+        resolvedAt: true,
+        closedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        status: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        slaPolicy: {
+          select: {
+            id: true,
+            priority: true,
+            firstResponseMinutes: true,
+            resolutionMinutes: true,
+          },
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            oldStatusId: true,
+            newStatusId: true,
+            reason: true,
+            createdAt: true,
+            oldStatus: {
+              select: { id: true, name: true },
+            },
+            newStatus: {
+              select: { id: true, name: true },
+            },
+            actor: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        comments: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        attachments: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            fileName: true,
+            fileUrl: true,
+            mimeType: true,
+            fileSize: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    // Never include internal notes in this response.
+    const data = {
+      ...ticket,
+      id: ticket.id.toString(),
+      userId: ticket.userId.toString(),
+      categoryId: ticket.categoryId.toString(),
+      subCategoryId: ticket.subCategoryId?.toString() ?? null,
+      category: ticket.category
+        ? { ...ticket.category, id: ticket.category.id.toString() }
+        : null,
+      subCategory: ticket.subCategory
+        ? { ...ticket.subCategory, id: ticket.subCategory.id.toString() }
+        : null,
+      slaPolicy: ticket.slaPolicy
+        ? { ...ticket.slaPolicy, id: ticket.slaPolicy.id.toString() }
+        : null,
+      statusHistory: ticket.statusHistory.map((history) => ({
+        ...history,
+        id: history.id.toString(),
+        oldStatusId: history.oldStatusId,
+        newStatusId: history.newStatusId,
+        actor: {
+          ...history.actor,
+          id: history.actor.id.toString(),
+        },
+      })),
+      comments: ticket.comments.map((comment) => ({
+        ...comment,
+        id: comment.id.toString(),
+        user: {
+          ...comment.user,
+          id: comment.user.id.toString(),
+        },
+      })),
+      attachments: ticket.attachments.map((attachment) => ({
+        ...attachment,
+        id: attachment.id.toString(),
+      })),
+    };
+
+    return {
+      message: 'Ticket retrieved successfully',
+      data,
+    };
+  }
 }

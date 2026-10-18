@@ -1,20 +1,65 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import {
   Roles,
   UserRoleId,
 } from '../../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../../common/guards/roles.guard.js';
+import { AdminService } from './admin.service.js';
+import { RejectTicketDto } from './dto/reject-ticket.dto.js';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    roleId: number;
+  };
+}
 
 @Controller('api/v1/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRoleId.ADMIN)
 export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
+
   @Get('test')
-  @Roles(UserRoleId.ADMIN)
   getAdminTest() {
     return {
       message: 'Admin authorization successful',
     };
+  }
+
+  @Patch('tickets/:id/accept')
+  @HttpCode(HttpStatus.OK)
+  acceptTicket(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.adminService.acceptTicket(id, request.user.id);
+  }
+
+  @Patch('tickets/:id/reject')
+  @HttpCode(HttpStatus.OK)
+  rejectTicket(
+    @Param('id') id: string,
+    @Body() dto: RejectTicketDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.adminService.rejectTicket(
+      id,
+      request.user.id,
+      dto,
+    );
   }
 }

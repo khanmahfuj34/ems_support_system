@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -53,5 +54,17 @@ export class TicketsController {
       },
       query,
     );
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  getById(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.ticketsService.getById(id, {
+      id: request.user.id,
+      roleId: request.user.roleId,
+    });
   }
 }

@@ -13,7 +13,6 @@ import { CategoriesModule } from './module/categories/categories.module.js';
 import { CommentsModule } from './module/comments/comments.module.js';
 
 import { PrismaModule } from './database/prisma/prisma.module.js';
-import { AdminController } from './module/admin/admin.controller.js';
 import { AdminModule } from './module/admin/admin.module.js';
 
 export const { ObserveModule, ObserveInstrument } =
@@ -50,7 +49,7 @@ const observeEnabled =
     CommentsModule,
     AdminModule,
   ],
-  controllers: [AppController, AdminController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
