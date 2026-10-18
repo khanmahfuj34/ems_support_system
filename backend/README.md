@@ -138,8 +138,8 @@ trust anchor.
 
 For a local Workbench server with `require_secure_transport=OFF`, TLS can be
 omitted explicitly in development only. Set `NODE_ENV=development` and
-`DATABASE_TLS=false`; `DATABASE_URL` must point to `localhost`, `127.0.0.1`, or
-`::1`. The adapter omits the `ssl` option in this mode. It never disables
+`DATABASE_SSL=false`; `DATABASE_URL` must point to `localhost` or `127.0.0.1`.
+The adapter omits the `ssl` option in this mode. It never disables
 certificate validation for connections where TLS is enabled.
 
 The local server handshake inspected for this setup reported MySQL-compatible
@@ -148,9 +148,13 @@ that plugin needs RSA password exchange. Prefer a trusted server RSA public key
 from the database administrator via `DATABASE_CACHING_RSA_PUBLIC_KEY`. If no
 trusted key is available, the explicit
 `DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL=true` opt-in is accepted only with
-`DATABASE_TLS=false`, `NODE_ENV=development`, and a loopback database host. Use
+`NODE_ENV=development` and a loopback database host. Use
 that option only for this local development server. TLS deployments should
 leave it unset and use `DATABASE_SSL_CA` as needed.
+
+The adapter loads `.env` before reading its configuration and logs only the
+database host and TLS state at startup. Connection failures log the host, TLS
+state, error code, and a credential-redacted error message.
 
 ## License
 
