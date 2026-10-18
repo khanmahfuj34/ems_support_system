@@ -1,29 +1,10 @@
 
 import 'dotenv/config';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient, Priority } from '@prisma/client';
-
-function createAdapter() {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is missing');
-  }
-
-  const url = new URL(connectionString);
-
-  return new PrismaMariaDb({
-    host: url.hostname,
-    port: Number(url.port || 3306),
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: decodeURIComponent(url.pathname.slice(1)),
-    connectionLimit: 5,
-  });
-}
+import { createMariaDbAdapter } from '../src/database/prisma/mariadb-adapter.js';
 
 const prisma = new PrismaClient({
-  adapter: createAdapter(),
+  adapter: createMariaDbAdapter(),
 });
 
 async function main() {

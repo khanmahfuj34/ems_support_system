@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { Prisma, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { createMariaDbAdapter } from '../src/database/prisma/mariadb-adapter.js';
 
 const ADMIN_ROLE_ID = 2;
 const BCRYPT_ROUNDS = 12;
@@ -64,25 +64,6 @@ function parseAdminAccounts(): AdminAccount[] {
     seenEmails.add(email);
 
     return { name, email, password };
-  });
-}
-
-function createAdapter() {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is missing.');
-  }
-
-  const url = new URL(connectionString);
-
-  return new PrismaMariaDb({
-    host: url.hostname,
-    port: Number(url.port || 3306),
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: decodeURIComponent(url.pathname.slice(1)),
-    connectionLimit: 5,
   });
 }
 
@@ -200,7 +181,7 @@ async function syncAdminAccount(prisma: PrismaClient, account: AdminAccount) {
 
 async function main() {
   const accounts = parseAdminAccounts();
-  const prisma = new PrismaClient({ adapter: createAdapter() });
+  const prisma = new PrismaClient({ adapter: createMariaDbAdapter() });
 
   try {
     await prisma.$connect();

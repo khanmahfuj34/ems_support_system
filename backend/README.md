@@ -129,6 +129,29 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 - Website - [https://nestjs.com](https://nestjs.com/)
 - Twitter - [@nestframework](https://twitter.com/nestframework)
 
+# Local MariaDB / MySQL development
+
+The shared Prisma adapter enables TLS certificate and hostname verification by
+default. Set `DATABASE_SSL_CA` to a trusted CA PEM path when the database uses
+a private CA. Never use a certificate copied from an unverified connection as a
+trust anchor.
+
+For a local Workbench server with `require_secure_transport=OFF`, TLS can be
+omitted explicitly in development only. Set `NODE_ENV=development` and
+`DATABASE_TLS=false`; `DATABASE_URL` must point to `localhost`, `127.0.0.1`, or
+`::1`. The adapter omits the `ssl` option in this mode. It never disables
+certificate validation for connections where TLS is enabled.
+
+The local server handshake inspected for this setup reported MySQL-compatible
+version `26.7.0` and advertised `caching_sha2_password`. When TLS is omitted,
+that plugin needs RSA password exchange. Prefer a trusted server RSA public key
+from the database administrator via `DATABASE_CACHING_RSA_PUBLIC_KEY`. If no
+trusted key is available, the explicit
+`DATABASE_ALLOW_PUBLIC_KEY_RETRIEVAL=true` opt-in is accepted only with
+`DATABASE_TLS=false`, `NODE_ENV=development`, and a loopback database host. Use
+that option only for this local development server. TLS deployments should
+leave it unset and use `DATABASE_SSL_CA` as needed.
+
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
