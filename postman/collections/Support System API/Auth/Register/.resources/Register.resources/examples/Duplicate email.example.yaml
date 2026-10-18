@@ -1,0 +1,20 @@
+$kind: http-example
+name: Duplicate email
+request:
+  url: http://localhost:3000/api/v1/auth/register
+  method: POST
+response:
+  statusCode: 409
+  statusText: Conflict
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "statusCode": 409,
+        "message": "An account with this email already exists",
+        "error": "Conflict"
+      }
+order: 2000

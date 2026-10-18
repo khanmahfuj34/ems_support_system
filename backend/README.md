@@ -31,6 +31,26 @@
 $ npm install
 ```
 
+## Provision administrator accounts
+
+Set `ADMIN_ACCOUNTS` in the ignored `.env` file as a JSON array. Each account
+requires an email and an 8 to 72 byte password; `name` is optional and defaults
+to the email local part. The command creates missing accounts and synchronizes
+configured names, passwords, and the `ADMIN` role. Accounts removed from the
+environment are left unchanged.
+
+```dotenv
+ADMIN_ACCOUNTS=[{"name":"Support Admin","email":"admin@example.com","password":"replace-with-a-long-random-secret"},{"email":"ops@example.com","password":"another-long-random-secret"}]
+```
+
+Run the dedicated provisioning command from `backend/`:
+
+```bash
+npm run seed:admins
+```
+
+Never commit the `.env` file or put real credentials in source control.
+
 ## Compile and run the project
 
 ```bash

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign In — Aethel Academy</title>
+<!-- Google Fonts: Plus Jakarta Sans & Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration matching Design System -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-surface": "#233144",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb95f",
+            "on-secondary-fixed": "#001e2f",
+            "background": "#f8f9ff",
+            "error-container": "#ffdad6",
+            "primary-container": "#1e1b4b",
+            "on-secondary": "#ffffff",
+            "on-primary-container": "#8683ba",
+            "surface-container-lowest": "#ffffff",
+            "on-error-container": "#93000a",
+            "secondary-fixed-dim": "#89ceff",
+            "outline": "#787680",
+            "surface-container-low": "#eff4ff",
+            "surface": "#f8f9ff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-variant": "#d5e3fc",
+            "surface-bright": "#f8f9ff",
+            "secondary-fixed": "#c9e6ff",
+            "on-background": "#0d1c2e",
+            "surface-tint": "#5b598c",
+            "surface-container-high": "#dce9ff",
+            "primary-fixed": "#e3dfff",
+            "secondary-container": "#39b8fd",
+            "on-primary-fixed": "#181445",
+            "on-secondary-fixed-variant": "#004c6e",
+            "on-primary-fixed-variant": "#444173",
+            "surface-dim": "#ccdbf3",
+            "surface-container": "#e6eeff",
+            "on-tertiary-fixed": "#2a1700",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#c4c1fb",
+            "on-primary": "#ffffff",
+            "outline-variant": "#c8c5d0",
+            "primary": "#070235",
+            "on-tertiary-fixed-variant": "#653e00",
+            "inverse-primary": "#c4c1fb",
+            "secondary": "#006591",
+            "on-secondary-container": "#004666",
+            "tertiary-container": "#331d00",
+            "on-error": "#ffffff",
+            "surface-container-highest": "#d5e3fc",
+            "on-surface": "#0d1c2e",
+            "on-surface-variant": "#47464f",
+            "tertiary": "#140900",
+            "on-tertiary-container": "#c07a00",
+            "tertiary-fixed": "#ffddb8"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2rem",
+            "margin-lg": "4rem",
+            "space-lg": "1.5rem",
+            "gutter-sm": "1rem",
+            "gutter": "1.5rem",
+            "gutter-lg": "2rem",
+            "space-md": "1rem",
+            "margin": "2rem",
+            "margin-sm": "1rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "display": ["Plus Jakarta Sans", "sans-serif"],
+            "title": ["Inter", "sans-serif"],
+            "label-md": ["Inter", "sans-serif"],
+            "body-sm": ["Inter", "sans-serif"],
+            "body-lg": ["Inter", "sans-serif"],
+            "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+            "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+            "label-sm": ["Inter", "sans-serif"]
+          },
+          "fontSize": {
+            "headline-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.025em", "fontWeight": "700" }],
+            "title": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" }],
+            "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+            "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.025em", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: rgba(30, 27, 75, 0.15);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="h-full bg-background text-on-surface antialiased flex flex-col font-body-md text-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Main Split Layout Container -->
+<main class="min-h-screen w-full flex flex-col lg:flex-row">
+<!-- LEFT PANEL: Educational Brand Experience (Desktop & Tablet) -->
+<div class="hidden lg:flex lg:w-1/2 xl:w-[52%] bg-gradient-to-br from-primary via-[#110e3d] to-primary-container text-on-primary flex-col justify-between p-8 xl:p-14 relative overflow-hidden border-r border-outline-variant/20">
+<!-- Architectural subtle geometric background overlay -->
+<div class="absolute inset-0 opacity-[0.04] pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
+<div class="absolute -top-32 -left-32 w-96 h-96 bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-32 -right-32 w-96 h-96 bg-tertiary-fixed-dim/10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Left Header / Logo & Emblem -->
+<div class="relative z-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest/10 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-sm">
+<span class="material-symbols-outlined text-tertiary-fixed text-2xl" data-icon="auto_stories">auto_stories</span>
+</div>
+<div>
+<span class="font-headline-sm text-headline-sm font-bold tracking-tight text-white block">Aethel Academy</span>
+<span class="font-label-sm text-label-sm text-surface-container-highest tracking-wide block opacity-85">Scholarly Rigor · Modern Discovery</span>
+</div>
+</div>
+</div>
+<!-- Central Visual & Academic Narrative -->
+<div class="relative z-10 my-auto py-8 space-y-6 max-w-xl">
+<!-- Hero Editorial Visual Frame with Warm Amber Accent -->
+<div class="relative rounded-xl overflow-hidden border border-white/15 shadow-2xl bg-primary/40 p-2 backdrop-blur-sm group">
+<div class="relative rounded-lg overflow-hidden h-64 xl:h-72 w-full">
+<img alt="Aethel Academy Grand Library" class="w-full h-full object-cover object-center transform group-hover:scale-[1.02] transition-transform duration-700 ease-out" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQVapaV9nnowQAxhk2jAU_2lWWQ55vRjohTvp1PEprVPmpzR_Z4hPSiFEHf8NOjdGAez6PVyQsS5vzqt2tTHsamSw11cr0Qbt779FN0pGTcb0tee9ZBSZ5J0cFTa7LCni45b-gua1-_88U28dNqyZV2ogniszGHz4ieygZ33KkpgEYJWJVpiUXrfzFxPjB_9e2p_oxlPrdPmE88WVh25YIP_PnC6YzJmAqb7hLcAkg1IxtKWVpDrNi"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent"></div>
+<div class="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-surface-container-highest">
+<span class="flex items-center gap-1.5 font-label-sm text-label-sm text-white/90">
+<span class="material-symbols-outlined text-sm text-tertiary-fixed" data-icon="school">school</span>
+                The Archival Atrium &amp; Research Guild
+              </span>
+<span class="bg-primary/80 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10 text-[11px] font-medium text-tertiary-fixed">
+                Cohort Fall 2025
+              </span>
+</div>
+</div>
+</div>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-white font-bold tracking-tight mb-2">
+            Your Learning Journey Starts Here
+          </h1>
+<p class="font-body-lg text-body-lg text-surface-container-high/90 font-normal leading-relaxed">
+            Access your personalized scholarly workspace and cultivate mastery through peer collaboration, empirical inquiry, and world-class faculty.
+          </p>
+</div>
+<!-- Three Benefit Badges (Lucide / Material iconography) -->
+<div class="grid grid-cols-1 gap-3 pt-2">
+<div class="flex items-start gap-3.5 p-3.5 rounded-lg bg-white/[0.06] border border-white/10 backdrop-blur-sm transition hover:bg-white/[0.09]">
+<div class="mt-0.5 w-8 h-8 rounded-md bg-secondary-container/20 border border-secondary-container/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-lg" data-icon="tune">tune</span>
+</div>
+<div>
+<h2 class="font-title text-[15px] font-semibold text-white leading-tight">Personalized Learning Experience</h2>
+<p class="font-body-sm text-body-sm text-surface-container-highest mt-0.5">Curated curricula adapted to your rigorous research tempo and scholarly aims.</p>
+</div>
+</div>
+<div class="flex items-start gap-3.5 p-3.5 rounded-lg bg-white/[0.06] border border-white/10 backdrop-blur-sm transition hover:bg-white/[0.09]">
+<div class="mt-0.5 w-8 h-8 rounded-md bg-tertiary-fixed/20 border border-tertiary-fixed/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary-fixed text-lg" data-icon="insights">insights</span>
+</div>
+<div>
+<h2 class="font-title text-[15px] font-semibold text-white leading-tight">Track Your Academic Progress</h2>
+<p class="font-body-sm text-body-sm text-surface-container-highest mt-0.5">Real-time thesis metrics, peer milestone reviews, and verifiable credentials.</p>
+</div>
+</div>
+<div class="flex items-start gap-3.5 p-3.5 rounded-lg bg-white/[0.06] border border-white/10 backdrop-blur-sm transition hover:bg-white/[0.09]">
+<div class="mt-0.5 w-8 h-8 rounded-md bg-primary-fixed-dim/20 border border-primary-fixed-dim/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary-fixed-dim text-lg" data-icon="groups">groups</span>
+</div>
+<div>
+<h2 class="font-title text-[15px] font-semibold text-white leading-tight">Learn and Grow Together</h2>
+<p class="font-body-sm text-body-sm text-surface-container-highest mt-0.5">Engage dynamically with faculty researchers and dedicated global study circles.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Left Panel Footer -->
+<div class="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-surface-container-highest">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-fixed text-base" data-icon="verified">verified</span>
+<span class="font-body-sm text-body-sm text-surface-container-highest">Accredited by the Global Higher Education Consortium</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary-fixed font-semibold tracking-wider bg-white/5 px-2.5 py-1 rounded">120,000+ SCHOLARS</span>
+</div>
+</div>
+<!-- RIGHT PANEL: Authentication Form Pane -->
+<div class="w-full lg:w-1/2 xl:w-[48%] flex flex-col justify-between bg-surface min-h-screen lg:min-h-0 overflow-y-auto custom-scroll">
+<!-- Top Bar: Mobile Brand Mark + Desktop State Inspector Switchers -->
+<div class="w-full px-6 lg:px-12 pt-6 pb-2 flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-lowest/50 backdrop-blur">
+<!-- Mobile/Tablet Compact Brand Header -->
+<div class="flex lg:hidden items-center gap-2.5">
+<div class="w-8 h-8 rounded bg-primary text-white flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" data-icon="auto_stories">auto_stories</span>
+</div>
+<div>
+<span class="font-headline-sm text-base font-bold text-primary tracking-tight">Aethel Academy</span>
+</div>
+</div>
+<div class="hidden lg:block text-xs font-label-sm text-on-surface-variant flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span>Institutional SSO Gateway v4.2</span>
+</div>
+<!-- Interactive State Inspector Bar (Demo Controls) -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg border border-outline-variant/40 text-xs">
+<span class="text-[11px] font-semibold text-on-surface-variant px-1.5 hidden sm:inline">STATE:</span>
+<button class="px-2 py-0.5 rounded text-xs font-medium bg-white text-primary shadow-xs transition-colors duration-150 border border-outline-variant/30" id="state-btn-default" type="button">
+            Default
+          </button>
+<button class="px-2 py-0.5 rounded text-xs font-medium text-on-surface-variant hover:text-primary transition-colors duration-150" id="state-btn-error" type="button">
+            Error
+          </button>
+<button class="px-2 py-0.5 rounded text-xs font-medium text-on-surface-variant hover:text-primary transition-colors duration-150" id="state-btn-loading" type="button">
+            Loading
+          </button>
+</div>
+</div>
+<!-- Center Form Content Area -->
+<div class="flex-1 flex items-center justify-center px-6 lg:px-12 py-10">
+<div class="w-full max-w-md mx-auto">
+<!-- Authentication Header -->
+<div class="mb-8">
+<h2 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">
+              Welcome Back
+            </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1.5">
+              Sign in to continue your scholarly inquiry and coursework.
+            </p>
+</div>
+<!-- Live Error Notification Banner (Hidden by default; toggled via JS) -->
+<div class="hidden mb-6 p-3.5 rounded-lg bg-error-container/60 border border-error/30 text-error flex items-start gap-2.5 transition-all" id="error-banner">
+<span class="material-symbols-outlined text-lg shrink-0 mt-0.5" data-icon="error">error</span>
+<div class="text-sm">
+<span class="font-semibold block">Authentication Unsuccessful</span>
+<span class="font-body-sm text-body-sm text-on-error-container">The credentials supplied do not match our institutional directory records.</span>
+</div>
+</div>
+<!-- Main Sign-In Form -->
+<form class="space-y-5" id="login-form" onsubmit="event.preventDefault(); triggerSubmitDemo();">
+<!-- Email Field -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface font-semibold mb-1.5" for="email">
+                Institutional or Personal Email
+              </label>
+<div class="relative rounded-lg shadow-sm">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[19px]" data-icon="mail">mail</span>
+</div>
+<input class="w-full h-10 pl-10 pr-3.5 text-on-surface font-body-md text-body-md bg-surface-container-lowest border border-outline-variant rounded-lg placeholder:text-outline/70 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" id="email" name="email" placeholder="name@university.edu or scholar@email.com" required="" type="email" value="elena.vance@oxford.aethel.edu"/>
+</div>
+<p class="hidden font-body-sm text-body-sm text-error mt-1.5 flex items-center gap-1" id="email-error-msg">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span>
+                Please enter an accredited institutional email address.
+              </p>
+</div>
+<!-- Password Field -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold" for="password">
+                  Password
+                </label>
+<a class="font-label-sm text-label-sm text-secondary hover:underline font-semibold transition-colors duration-150" href="#">
+                  Forgot password?
+                </a>
+</div>
+<div class="relative rounded-lg shadow-sm">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[19px]" data-icon="lock">lock</span>
+</div>
+<input class="w-full h-10 pl-10 pr-10 text-on-surface font-body-md text-body-md bg-surface-container-lowest border border-outline-variant rounded-lg placeholder:text-outline/70 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" id="password" name="password" placeholder="••••••••••••" required="" type="password" value="ScholarlyRigor2025!"/>
+<!-- Trailing Password Toggle Button -->
+<button aria-label="Toggle password visibility" class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-primary transition-colors focus:outline-none" id="toggle-password" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="visibility" id="eye-icon">visibility</span>
+</button>
+</div>
+<p class="hidden font-body-sm text-body-sm text-error mt-1.5 flex items-center gap-1" id="password-error-msg">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span>
+                Password must be at least 12 characters with university token complexity.
+              </p>
+</div>
+<!-- Remember Me Workstation Checkbox -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center">
+<input checked="" class="h-4 w-4 rounded border-outline-variant text-primary-container focus:ring-secondary" id="remember-me" name="remember-me" type="checkbox"/>
+<label class="ml-2 block font-label-md text-label-md text-on-surface-variant cursor-pointer select-none" for="remember-me">
+                  Remember this workstation for 30 days
+                </label>
+</div>
+</div>
+<!-- Submit Button (With Loading State Architecture) -->
+<div class="pt-2">
+<button class="w-full h-11 flex items-center justify-center px-5 rounded-lg bg-primary text-white font-label-md text-label-md font-semibold hover:bg-primary-container active:scale-[0.99] transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary" id="submit-btn" type="submit">
+<!-- Normal Label State -->
+<span class="flex items-center gap-2" id="submit-text">
+<span>Sign In</span>
+<span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
+</span>
+<!-- Loading Spinner State (Hidden by default) -->
+<span class="hidden flex items-center gap-2" id="submit-spinner">
+<svg class="animate-spin h-5 w-5 text-white" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" fill="currentColor"></path>
+</svg>
+<span>Authenticating Identity...</span>
+</span>
+</button>
+</div>
+<!-- Crisp Divider: OR -->
+<div class="relative my-6">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-outline-variant/40"></div>
+</div>
+<div class="relative flex justify-center text-xs">
+<span class="px-3 bg-surface text-outline font-label-sm uppercase tracking-wider font-semibold">
+                  OR
+                </span>
+</div>
+</div>
+<!-- Social SSO Auth: Google -->
+<div>
+<button class="w-full h-11 flex items-center justify-center gap-3 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low text-on-surface font-label-md text-label-md font-medium transition-all shadow-xs active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-secondary/40" type="button">
+<!-- Authentic Google G Multi-colored SVG -->
+<svg class="w-4 h-4 shrink-0" viewbox="0 0 24 24">
+<path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.67v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.16z" fill="#4285F4"></path>
+<path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" fill="#34A853"></path>
+<path d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.04 0 12s.45 3.82 1.25 5.42l4.03-3.15z" fill="#FBBC05"></path>
+<path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" fill="#EA4335"></path>
+</svg>
+<span>Continue with Google</span>
+</button>
+</div>
+<!-- Registration Footer Prompt -->
+<div class="text-center pt-4">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Don't have an account?
+                <a class="font-label-md text-label-md font-semibold text-primary hover:text-secondary underline underline-offset-4 decoration-primary/40 hover:decoration-secondary transition-colors ml-1" href="#">
+                  Create one
+                </a>
+</p>
+</div>
+</form>
+</div>
+</div>
+<!-- Bottom Institutional Compliance Notice (Footer Component Anchor) -->
+<footer class="w-full px-6 lg:px-12 py-5 border-t border-outline-variant/30 text-center lg:text-left bg-surface-container-lowest/40">
+<div class="flex flex-col sm:flex-row items-center justify-between text-xs text-on-surface-variant gap-2 max-w-md mx-auto lg:max-w-none">
+<p class="font-body-sm text-body-sm">
+            © 2025 Aethel Academy. Scholarly Rigor, Modern Discovery.
+          </p>
+<div class="flex items-center gap-4">
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<span class="text-outline-variant">•</span>
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<span class="text-outline-variant">•</span>
+<a class="hover:text-primary transition-colors" href="#">System Status</a>
+</div>
+</div>
+</footer>
+</div>
+</main>
+<!-- Interactive State Scripts: Password Toggle, State Inspector -->
+<script>
+    // Password Visibility Toggle
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('toggle-password');
+    const eyeIcon = document.getElementById('eye-icon');
+
+    togglePasswordBtn.addEventListener('click', () => {
+      const isPassword = passwordInput.getAttribute('type') === 'password';
+      passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+      eyeIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
+    });
+
+    // UI Demonstration State Controls
+    const btnDefault = document.getElementById('state-btn-default');
+    const btnError = document.getElementById('state-btn-error');
+    const btnLoading = document.getElementById('state-btn-loading');
+
+    const errorBanner = document.getElementById('error-banner');
+    const emailErrorMsg = document.getElementById('email-error-msg');
+    const passwordErrorMsg = document.getElementById('password-error-msg');
+    const emailInput = document.getElementById('email');
+
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const submitSpinner = document.getElementById('submit-spinner');
+
+    function setActiveInspector(btn) {
+      [btnDefault, btnError, btnLoading].forEach(b => {
+        b.className = "px-2 py-0.5 rounded text-xs font-medium text-on-surface-variant hover:text-primary transition-colors duration-150";
+      });
+      btn.className = "px-2 py-0.5 rounded text-xs font-medium bg-white text-primary shadow-xs transition-colors duration-150 border border-outline-variant/30";
+    }
+
+    function setNormalState() {
+      setActiveInspector(btnDefault);
+      errorBanner.classList.add('hidden');
+      emailErrorMsg.classList.add('hidden');
+      passwordErrorMsg.classList.add('hidden');
+      emailInput.classList.remove('border-error', 'focus:ring-error', 'focus:border-error');
+      passwordInput.classList.remove('border-error', 'focus:ring-error', 'focus:border-error');
+
+      submitBtn.disabled = false;
+      submitText.classList.remove('hidden');
+      submitSpinner.classList.add('hidden');
+    }
+
+    function setErrorState() {
+      setActiveInspector(btnError);
+      errorBanner.classList.remove('hidden');
+      emailErrorMsg.classList.remove('hidden');
+      passwordErrorMsg.classList.remove('hidden');
+      emailInput.classList.add('border-error', 'focus:ring-error', 'focus:border-error');
+      passwordInput.classList.add('border-error', 'focus:ring-error', 'focus:border-error');
+
+      submitBtn.disabled = false;
+      submitText.classList.remove('hidden');
+      submitSpinner.classList.add('hidden');
+    }
+
+    function setLoadingState() {
+      setActiveInspector(btnLoading);
+      errorBanner.classList.add('hidden');
+      emailErrorMsg.classList.add('hidden');
+      passwordErrorMsg.classList.add('hidden');
+      emailInput.classList.remove('border-error', 'focus:ring-error', 'focus:border-error');
+      passwordInput.classList.remove('border-error', 'focus:ring-error', 'focus:border-error');
+
+      submitBtn.disabled = true;
+      submitText.classList.add('hidden');
+      submitSpinner.classList.remove('hidden');
+    }
+
+    btnDefault.addEventListener('click', setNormalState);
+    btnError.addEventListener('click', setErrorState);
+    btnLoading.addEventListener('click', setLoadingState);
+
+    // Form submit simulate
+    function triggerSubmitDemo() {
+      setLoadingState();
+      setTimeout(() => {
+        setNormalState();
+      }, 1600);
+    }
+  </script>
+</body></html>

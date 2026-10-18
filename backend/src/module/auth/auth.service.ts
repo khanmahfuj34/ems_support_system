@@ -1,10 +1,14 @@
 import {
+  ConflictException,
+  InternalServerErrorException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { LoginDto } from './dto/login.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -13,6 +17,67 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  async register(dto: RegisterDto) {
+    const email = dto.email.toLowerCase().trim();
+
+    const userRole = await this.prisma.userRole.findUnique({
+      where: { id: 1 },
+    });
+
+    if (!userRole || userRole.name !== 'USER') {
+      throw new InternalServerErrorException(
+        'Default user role is not configured',
+      );
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    const password = await bcrypt.hash(dto.password, 12);
+
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          name: dto.name,
+          email,
+          password,
+          roleId: 1,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          roleId: true,
+        },
+      });
+
+      return {
+        message: 'Registration successful',
+        user: {
+          ...user,
+          id: user.id.toString(),
+        },
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'An account with this email already exists',
+        );
+      }
+
+      throw error;
+    }
+  }
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
