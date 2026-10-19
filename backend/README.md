@@ -51,6 +51,20 @@ npm run seed:admins
 
 Never commit the `.env` file or put real credentials in source control.
 
+### Promoting or restoring an existing account
+
+To promote an **existing** user account, list its email in `ADMIN_ACCOUNTS`
+with the desired password and run `npm run seed:admins`. The command keeps the
+account's identity, grants role ID 2 (`ADMIN`), and rotates the password only
+when it does not match the configured value. Passwords entered here are
+provisioning secrets: choose long random values and change them again after the
+administrator signs in. The script never demotes admins by omission — to
+demote, update the account's `roleId` back to 1 directly in the database.
+
+Public registration never assigns the `ADMIN` role; `/api/v1/admin/*` routes
+are enforced server-side by `JwtAuthGuard` + `RolesGuard` (`@Roles(ADMIN)`),
+so frontend hiding is only a convenience, never the security boundary.
+
 ## Compile and run the project
 
 ```bash

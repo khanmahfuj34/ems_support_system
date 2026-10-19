@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { UserRoleId } from '../../common/decorators/roles.decorator.js';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -21,8 +22,10 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const email = dto.email.toLowerCase().trim();
 
+    // Public registration is always restricted to the USER role. The role id
+    // is resolved from the seeded lookup table, never from the request.
     const userRole = await this.prisma.userRole.findUnique({
-      where: { id: 1 },
+      where: { id: UserRoleId.USER },
     });
 
     if (!userRole || userRole.name !== 'USER') {
@@ -48,7 +51,7 @@ export class AuthService {
           name: dto.name,
           email,
           password,
-          roleId: 1,
+          roleId: userRole.id,
         },
         select: {
           id: true,

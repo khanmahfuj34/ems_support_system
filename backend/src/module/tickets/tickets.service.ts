@@ -3,14 +3,18 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { Prisma, Priority } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service.js';
+import { UserRoleId } from '../../common/decorators/roles.decorator.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto.js';
+import {
+  sanitizeTicketDescription,
+  stripHtmlTags,
+} from './utils/sanitize-html.js';
 
 const TICKET_STATUS = {
   PENDING_REVIEW: 2,
@@ -48,9 +52,11 @@ export class TicketsService {
 
     const priority = dto.priority as Priority;
     const subject = dto.subject.trim();
-    const description = dto.description.trim();
 
-    if (!subject || !description) {
+    // PRD "Rich Text Security": rich text must be sanitized before storage.
+    const description = sanitizeTicketDescription(dto.description.trim());
+
+    if (!subject || !stripHtmlTags(description)) {
       throw new BadRequestException(
         'Subject and description must not be empty',
       );
@@ -241,7 +247,7 @@ export class TicketsService {
     const where: Prisma.TicketWhereInput = {};
 
     // Regular users can only access their own tickets.
-    if (user.roleId !== 2) {
+    if (user.roleId !== UserRoleId.ADMIN) {
       where.userId = BigInt(user.id);
     }
 
@@ -392,7 +398,7 @@ export class TicketsService {
     };
 
     // Restrict regular users to their own tickets.
-    if (Number(user.roleId) !== 2) {
+    if (Number(user.roleId) !== UserRoleId.ADMIN) {
       where.userId = BigInt(user.id);
     }
 
@@ -469,17 +475,18 @@ export class TicketsService {
         },
         comments: {
           orderBy: { createdAt: 'asc' },
-          select: {
-            id: true,
-            content: true,
-            createdAt: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  roleId: true,
+                },
               },
             },
-          },
         },
         attachments: {
           orderBy: { createdAt: 'asc' },
@@ -536,6 +543,7 @@ export class TicketsService {
       attachments: ticket.attachments.map((attachment) => ({
         ...attachment,
         id: attachment.id.toString(),
+        fileSize: attachment.fileSize.toString(),
       })),
     };
 
