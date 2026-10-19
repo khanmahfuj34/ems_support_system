@@ -11,10 +11,13 @@ import {
   Ticket,
   Bell,
   User,
+  UserRound,
   Headphones,
   ExternalLink,
   Search,
   CircleUser,
+  BarChart3,
+  Settings,
   ChevronDown,
   Menu,
   X,
@@ -58,6 +61,36 @@ export function SupportDeskLayout({ children }: SupportDeskLayoutProps) {
           href: "/support-desk",
           icon: CircleUser,
           isActive: pathname.startsWith("/support-desk"),
+        },
+        // Admin console sections without routes yet are rendered as disabled
+        // navigation affordances instead of dead links.
+        {
+          label: "Users",
+          href: "",
+          icon: UserRound,
+          isActive: false,
+          disabled: true,
+        },
+        {
+          label: "Notifications",
+          href: "",
+          icon: Bell,
+          isActive: false,
+          disabled: true,
+        },
+        {
+          label: "Reports",
+          href: "",
+          icon: BarChart3,
+          isActive: false,
+          disabled: true,
+        },
+        {
+          label: "Settings",
+          href: "",
+          icon: Settings,
+          isActive: false,
+          disabled: true,
         },
       ]
     : [
@@ -132,6 +165,19 @@ export function SupportDeskLayout({ children }: SupportDeskLayoutProps) {
           <nav className="p-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
+              if ("disabled" in item && item.disabled) {
+                return (
+                  <span
+                    key={item.label}
+                    title="Coming soon"
+                    aria-disabled="true"
+                    className="flex items-center gap-3 px-3.5 py-2.5 text-sm font-medium text-gray-400 rounded-lg cursor-not-allowed select-none"
+                  >
+                    <Icon className="size-4.5 shrink-0 text-gray-300" />
+                    <span>{item.label}</span>
+                  </span>
+                );
+              }
               return (
                 <Link
                   key={item.label}

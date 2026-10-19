@@ -1,6 +1,7 @@
 import type { AxiosError } from "axios";
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import type { TicketPriority } from "@/features/tickets/types/ticket.types";
 import type {
   AdminTicketListResponse,
   AdminTicketReviewResponse,
@@ -50,6 +51,37 @@ export async function listPendingReviewTickets(): Promise<AdminTicketListRespons
         sortBy: "createdAt",
         sortOrder: "asc",
         limit: 50,
+      },
+    },
+  );
+
+  return data;
+}
+
+/**
+ * Paginated ticket list for the admin support desk.
+ * All filters are applied server-side; the API scopes rows to the caller
+ * (admins see every ticket, users only their own).
+ */
+export async function listTickets(options?: {
+  page?: number;
+  statusId?: number;
+  categoryId?: string;
+  priority?: TicketPriority;
+}): Promise<AdminTicketListResponse> {
+  const { data } = await apiClient.get<AdminTicketListResponse>(
+    API_ENDPOINTS.tickets.list,
+    {
+      params: {
+        page: options?.page ?? 1,
+        limit: 10,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        ...(options?.statusId !== undefined
+          ? { statusId: options.statusId }
+          : {}),
+        ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
+        ...(options?.priority ? { priority: options.priority } : {}),
       },
     },
   );
