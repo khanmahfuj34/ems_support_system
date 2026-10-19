@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   UploadCloud,
   FileText,
@@ -17,8 +18,14 @@ interface TicketAttachmentsProps {
   disabled?: boolean;
 }
 
-const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"];
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".pdf"];
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]);
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB, matching the upload API
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 Bytes";
@@ -36,6 +43,24 @@ export function TicketAttachments({
   const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewUrls = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    const currentIds = new Set(attachments.map((attachment) => attachment.id));
+    for (const [id, url] of previewUrls.current) {
+      if (!currentIds.has(id)) {
+        URL.revokeObjectURL(url);
+        previewUrls.current.delete(id);
+      }
+    }
+  }, [attachments]);
+
+  useEffect(
+    () => () => {
+      for (const url of previewUrls.current.values()) URL.revokeObjectURL(url);
+      previewUrls.current.clear();
+    },
+  );
 
   const validateAndAddFiles = (files: FileList | File[]) => {
     setErrorMessage(null);
@@ -45,12 +70,17 @@ export function TicketAttachments({
     Array.from(files).forEach((file) => {
       const ext = `.${file.name.split(".").pop()?.toLowerCase()}`;
       if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        errors.push(`"${file.name}" has an unsupported format. Only JPG, PNG, PDF, DOC, DOCX are allowed.`);
+        errors.push(`"${file.name}" has an unsupported format. Only JPG, PNG, WEBP, and PDF are allowed.`);
+        return;
+      }
+
+      if (!ALLOWED_MIME_TYPES.has(file.type)) {
+        errors.push(`"${file.name}" has an unsupported file type. Choose a valid JPG, PNG, WEBP, or PDF file.`);
         return;
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        errors.push(`"${file.name}" exceeds the maximum allowed size of 10MB.`);
+        errors.push(`"${file.name}" exceeds the maximum allowed size of 5 MB.`);
         return;
       }
 
@@ -60,13 +90,22 @@ export function TicketAttachments({
       );
       if (exists) return;
 
+      const id = `${file.name}-${file.size}-${Date.now()}-${newItems.length}`;
+      const previewUrl = file.type.startsWith("image/") || file.type === "application/pdf"
+        ? URL.createObjectURL(file)
+        : undefined;
+      if (previewUrl) previewUrls.current.set(id, previewUrl);
+
       newItems.push({
-        id: `${file.name}-${file.size}-${Date.now()}-${newItems.length}`,
+        id,
         file,
         name: file.name,
         size: file.size,
         formattedSize: formatBytes(file.size),
         type: file.type,
+        previewUrl,
+        uploadStatus: "queued",
+        uploadProgress: 0,
       });
     });
 
@@ -129,7 +168,7 @@ export function TicketAttachments({
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+        accept=".jpg,.jpeg,.png,.webp,.pdf"
         disabled={disabled}
         onChange={handleFileSelect}
         className="hidden"
@@ -159,7 +198,7 @@ export function TicketAttachments({
         </p>
 
         <p className="text-xs text-gray-400">
-          Supported formats: JPG, PNG, PDF, DOC, DOCX (Max 10MB per file)
+          Supported formats: JPG, PNG, WEBP, PDF (Max 5 MB per file)
         </p>
       </div>
 
@@ -188,11 +227,22 @@ export function TicketAttachments({
             {attachments.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-gray-50/60 hover:bg-white transition-colors"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 p-2.5 rounded-lg border border-gray-200 bg-gray-50/60 hover:bg-white transition-colors"
               >
                 <div className="flex items-center gap-2.5 overflow-hidden pr-2">
-                  <div className="size-7 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                    {getFileIcon(file.name, file.type)}
+                  <div className="size-10 rounded bg-white border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
+                    {file.previewUrl && file.type.startsWith("image/") ? (
+                      <Image
+                        src={file.previewUrl}
+                        alt={`${file.name} preview`}
+                        width={40}
+                        height={40}
+                        unoptimized
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      getFileIcon(file.name, file.type)
+                    )}
                   </div>
                   <div className="overflow-hidden">
                     <p className="text-xs font-medium text-gray-800 truncate" title={file.name}>
@@ -201,21 +251,52 @@ export function TicketAttachments({
                     <p className="text-[11px] text-gray-400">
                       {file.formattedSize}
                     </p>
+                    {file.previewUrl && file.type === "application/pdf" && (
+                      <a
+                        href={file.previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        className="text-[11px] text-blue-600 hover:underline"
+                      >
+                        Preview PDF
+                      </a>
+                    )}
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeAttachment(file.id);
-                  }}
-                  className="size-6 flex items-center justify-center rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                  title="Remove file"
-                >
-                  <X className="size-3.5" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {file.uploadStatus === "uploaded" ? (
+                    <span className="text-[10px] font-medium text-emerald-700">Uploaded</span>
+                  ) : file.uploadStatus === "uploading" ? (
+                    <span className="text-[10px] font-medium text-blue-700">{file.uploadProgress}%</span>
+                  ) : file.uploadStatus === "error" ? (
+                    <span className="text-[10px] font-medium text-red-600">Failed</span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400">Ready</span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={disabled || file.uploadStatus === "uploading" || file.uploadStatus === "uploaded"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAttachment(file.id);
+                    }}
+                    className="size-6 flex items-center justify-center rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={file.uploadStatus === "uploaded" ? "Already attached to ticket" : "Remove file"}
+                    aria-label={`Remove ${file.name}`}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+                {file.uploadStatus === "uploading" && (
+                  <div className="col-span-full h-1.5 overflow-hidden rounded-full bg-blue-100" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={file.uploadProgress} aria-label={`Uploading ${file.name}`}>
+                    <div className="h-full rounded-full bg-blue-600 transition-[width]" style={{ width: `${file.uploadProgress}%` }} />
+                  </div>
+                )}
+                {file.uploadStatus === "error" && file.uploadError && (
+                  <p className="col-span-full text-[11px] text-red-600" role="alert">{file.uploadError}</p>
+                )}
               </div>
             ))}
           </div>

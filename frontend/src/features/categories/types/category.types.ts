@@ -1,13 +1,13 @@
 export interface SubCategory {
   id: string;
-  categoryId: string;
   name: string;
-  description?: string;
+  description?: string | null;
+  sortOrder?: number;
 }
 
 export interface Category {
   id: string;
   name: string;
-  description?: string;
-  subCategories: SubCategory[];
+  description?: string | null;
+  sortOrder?: number;
 }

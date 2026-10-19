@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, School, X } from "lucide-react";
 import { Inter } from "next/font/google";
+import { useAuth } from "@/providers/auth-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,6 +22,9 @@ const NAV_LINKS = [
 
 export function SiteNavbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, status, logout } = useAuth();
+
+  const isAuthenticated = status !== "checking" && status !== "error" && user !== null;
 
   return (
     <header
@@ -64,18 +68,30 @@ export function SiteNavbar() {
 
         {/* Trailing Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            className="px-4 py-2 text-sm leading-5 font-medium text-[#070235] hover:text-[#006591] border border-[#c8c5d0]/60 dark:border-[#787680]/40 rounded-lg bg-white dark:bg-transparent transition-colors duration-150"
-            href="/login"
-          >
-            Sign In
-          </Link>
-          <Link
-            className="px-5 py-2 text-sm leading-5 font-medium text-white bg-[#1e1b4b] hover:bg-[#070235] dark:bg-[#1e1b4b] dark:hover:bg-[#2a265e] rounded-lg shadow-sm transition-all duration-150 hover:shadow-md"
-            href="/register"
-          >
-            Get Started
-          </Link>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              className="px-5 py-2 text-sm leading-5 font-medium text-white bg-[#1e1b4b] hover:bg-[#070235] dark:bg-[#1e1b4b] dark:hover:bg-[#2a265e] rounded-lg shadow-sm transition-all duration-150 hover:shadow-md cursor-pointer"
+              onClick={() => logout()}
+            >
+              Logout
+            </button>
+          ) : status === "checking" ? null : (
+            <>
+              <Link
+                className="px-4 py-2 text-sm leading-5 font-medium text-[#070235] hover:text-[#006591] border border-[#c8c5d0]/60 dark:border-[#787680]/40 rounded-lg bg-white dark:bg-transparent transition-colors duration-150"
+                href="/login"
+              >
+                Sign In
+              </Link>
+              <Link
+                className="px-5 py-2 text-sm leading-5 font-medium text-white bg-[#1e1b4b] hover:bg-[#070235] dark:bg-[#1e1b4b] dark:hover:bg-[#2a265e] rounded-lg shadow-sm transition-all duration-150 hover:shadow-md"
+                href="/register"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -114,18 +130,33 @@ export function SiteNavbar() {
             ))}
           </nav>
           <div className="px-4 pb-4 pt-1 flex items-center gap-3">
-            <Link
-              className="flex-1 px-4 py-2.5 text-center text-sm leading-5 font-medium text-[#070235] border border-[#c8c5d0]/60 rounded-lg bg-white transition-colors duration-150"
-              href="/login"
-            >
-              Sign In
-            </Link>
-            <Link
-              className="flex-1 px-5 py-2.5 text-center text-sm leading-5 font-medium text-white bg-[#1e1b4b] hover:bg-[#070235] rounded-lg shadow-sm transition-all duration-150 hover:shadow-md"
-              href="/register"
-            >
-              Get Started
-            </Link>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                className="w-full px-4 py-2.5 text-center text-sm leading-5 font-medium text-white bg-[#1e1b4b] hover:bg-[#070235] rounded-lg shadow-sm transition-all duration-150 hover:shadow-md cursor-pointer"
+                onClick={() => {
+                  setIsOpen(false);
+                  logout();
+                }}
+              >
+                Logout
+              </button>
+            ) : status === "checking" ? null : (
+              <>
+                <Link
+                  className="flex-1 px-4 py-2.5 text-center text-sm leading-5 font-medium text-[#070235] border border-[#c8c5d0]/60 rounded-lg bg-white transition-colors duration-150"
+                  href="/login"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  className="flex-1 px-5 py-2.5 text-center text-sm leading-5 font-medium text-white bg-[#1e1b4b] hover:bg-[#070235] rounded-lg shadow-sm transition-all duration-150 hover:shadow-md"
+                  href="/register"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

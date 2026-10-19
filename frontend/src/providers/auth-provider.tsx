@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return () => window.cancelAnimationFrame(frame);
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshUser().catch(() => undefined);
   }, [refreshUser]);
 
@@ -56,7 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleUnauthorized = () => {
       setUser(null);
       setStatus("unauthenticated");
-      router.replace("/login");
+
+      const { pathname, search } = window.location;
+      if (pathname !== "/login") {
+        router.replace(`/login?next=${encodeURIComponent(`${pathname}${search}`)}`);
+      }
     };
 
     window.addEventListener("supportdesk:unauthorized", handleUnauthorized);

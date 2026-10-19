@@ -149,7 +149,12 @@ export function RegisterForm() {
 
       try {
         await registerAccount({ fullName, email, password });
-        router.replace("/login?registered=1");
+        const next = new URLSearchParams(window.location.search).get("next");
+        router.replace(
+          next && next.startsWith("/")
+            ? `/login?registered=1&next=${encodeURIComponent(next)}`
+            : "/login?registered=1",
+        );
       } catch (error) {
         setFormError(getApiErrorMessage(error, "Registration failed. Please try again."));
         setStatus("error");

@@ -79,12 +79,19 @@ export function RichTextEditor({
     content: value,
     editable: !disabled,
     immediatelyRender: false,
+    // Required by Tiptap 3: without this the toolbar's active/disabled
+    // states would not re-render when the selection or format changes.
+    shouldRerenderOnTransaction: true,
     editorProps: {
       attributes: {
         class:
           "min-h-[160px] p-4 text-sm text-gray-800 outline-none max-w-none focus:outline-none prose prose-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-500 [&_blockquote]:pl-4 [&_blockquote]:italic [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:p-3 [&_pre]:rounded-md [&_pre]:font-mono [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:text-blue-600",
         "aria-label": "Ticket description",
       },
+    },
+    onCreate: ({ editor: createdEditor }) => {
+      const text = createdEditor.getText();
+      setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
     },
     onUpdate: ({ editor: currentEditor }) => {
       const html = currentEditor.getHTML();
@@ -99,7 +106,6 @@ export function RichTextEditor({
   useEffect(() => {
     if (editor && value === "" && editor.getHTML() !== "<p></p>") {
       editor.commands.setContent("");
-      setWordCount(0);
     }
   }, [value, editor]);
 

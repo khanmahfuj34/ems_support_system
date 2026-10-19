@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -19,6 +19,8 @@ import {
 
 import { loginSchema, type LoginValues } from "@/features/auth/schemas/auth.schema";
 import { getApiErrorMessage } from "@/features/auth/services/auth.service";
+import { USER_ROLE } from "@/features/auth/types/auth.types";
+import { dashboardForRole } from "@/features/auth/utils/role-redirect";
 import { useAuth } from "@/providers/auth-provider";
 
 type AuthStatus = "default" | "error" | "loading";
@@ -41,17 +43,24 @@ function FieldErrorMessage({ message }: { message?: string }) {
   );
 }
 
-export function LoginForm() {
+function sanitizeRedirectTarget(target: string | null): string {
+  if (target && target.startsWith("/") && !target.startsWith("//") && !target.startsWith("/\\")) {
+    return target;
+  }
+  return "/";
+}
+
+export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<AuthStatus>("default");
   const [formError, setFormError] = useState("");
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    setRegistrationSuccess(new URLSearchParams(window.location.search).get("registered") === "1");
-  }, []);
+  const registrationSuccess = searchParams.get("registered") === "1";
+  const redirectTarget = sanitizeRedirectTarget(searchParams.get("next"));
+  const hasExplicitNext = Boolean(searchParams.get("next"));
 
   const {
     register,
@@ -79,12 +88,25 @@ export function LoginForm() {
 
   const onSubmit = handleSubmit(
     async ({ email, password }) => {
-      // API client is not wired yet — reference flow: loading, then settle.
+      // The public sign-in API is shared by all roles; the role stored in the
+      // database decides where each account may go.
       setStatus("loading");
       setFormError("");
       try {
-        await login({ email, password });
-        router.replace("/");
+        const user = await login({ email, password });
+
+        if (adminOnly && user.roleId !== USER_ROLE.ADMIN) {
+          // Keep non-admin credentials out of any admin session.
+          logout();
+          setFormError("This account does not have administrator access.");
+          setStatus("error");
+          return;
+        }
+
+        const next = hasExplicitNext
+          ? redirectTarget
+          : dashboardForRole(user.roleId);
+        router.replace(next);
       } catch (error) {
         setFormError(getApiErrorMessage(error, "Sign in failed. Please try again."));
         setStatus("error");
@@ -153,10 +175,12 @@ export function LoginForm() {
           {/* Authentication header */}
           <div className="mb-8">
             <h2 className="text-2xl leading-8 font-bold text-[#070235] tracking-[-0.015em] font-[family-name:var(--font-auth-jakarta)]">
-              Welcome Back
+              {adminOnly ? "Administrator Sign In" : "Welcome Back"}
             </h2>
             <p className="text-sm leading-5 text-[#47464f] mt-1.5">
-              Sign in to continue your scholarly inquiry and coursework.
+              {adminOnly
+                ? "Sign in to review support tickets and respond to requests."
+                : "Sign in to continue your scholarly inquiry and coursework."}
             </p>
           </div>
 
@@ -238,7 +262,7 @@ export function LoginForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  placeholder="••••••••••••"
+                  placeholder="Enter your password"
                   className={`w-full h-10 pl-10 pr-10 text-[#0d1c2e] text-sm leading-5 bg-white border border-[#c8c5d0] rounded-lg placeholder:text-[#787680]/70 focus:outline-none focus:ring-2 focus:ring-[#006591] focus:border-[#006591] transition-all ${
                     errors.password ? FIELD_ERROR_CLASS : ""
                   }`}
@@ -359,18 +383,20 @@ export function LoginForm() {
               </button>
             </div>
 
-            {/* Registration footer prompt */}
-            <div className="text-center pt-4">
-              <p className="text-sm leading-5 text-[#47464f]">
-                Don&apos;t have an account?{" "}
-                <Link
-                  className="text-sm leading-5 font-semibold text-[#070235] hover:text-[#006591] underline underline-offset-4 decoration-[#070235]/40 hover:decoration-[#006591] transition-colors ml-1"
-                  href="/register"
-                >
-                  Create one
-                </Link>
-              </p>
-            </div>
+            {/* Registration footer prompt (public registration is USER-only) */}
+            {!adminOnly && (
+              <div className="text-center pt-4">
+                <p className="text-sm leading-5 text-[#47464f]">
+                  Don&apos;t have an account?{" "}
+                  <Link
+                    className="text-sm leading-5 font-semibold text-[#070235] hover:text-[#006591] underline underline-offset-4 decoration-[#070235]/40 hover:decoration-[#006591] transition-colors ml-1"
+                    href="/register"
+                  >
+                    Create one
+                  </Link>
+                </p>
+              </div>
+            )}
           </form>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
@@ -27,7 +28,9 @@ export default function LoginPage() {
       className={`${inter.variable} ${jakarta.variable} font-[family-name:var(--font-auth-inter)] min-h-screen w-full flex flex-col lg:flex-row bg-[#f8f9ff] text-[#0d1c2e] antialiased`}
     >
       <AuthBrandPanel />
-      <LoginForm />
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }

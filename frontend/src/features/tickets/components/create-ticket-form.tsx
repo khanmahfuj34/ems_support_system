@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ChevronRight,
@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  FileCheck2,
 } from "lucide-react";
 
 import {
@@ -24,10 +23,17 @@ import type {
   TicketAttachmentItem,
   CreateTicketResponse,
 } from "../types/ticket.types";
-import { DEFAULT_CATEGORIES } from "@/features/categories/constants/categories.data";
+import type { Category, SubCategory } from "@/features/categories/types/category.types";
+import {
+  getCategories,
+  getCategoryApiErrorMessage,
+  getSubcategories,
+} from "@/features/categories/services/category.service";
 import dynamic from "next/dynamic";
 import { PrioritySelector } from "./priority-selector";
 import { TicketAttachments } from "./ticket-attachments";
+import { RichTextContent } from "./rich-text-content";
+import { useToast } from "@/components/ui/toaster";
 
 const RichTextEditor = dynamic(
   () => import("./rich-text-editor").then((mod) => mod.RichTextEditor),
@@ -44,19 +50,30 @@ import {
   createTicket,
   getTicketApiErrorMessage,
 } from "../services/ticket.service";
+import { uploadTicketAttachment } from "../services/ticket-attachment.service";
 
 export function CreateTicketForm() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionStage, setSubmissionStage] = useState<"creating" | "uploading" | null>(null);
+  const submitLock = useRef(false);
   const [attachments, setAttachments] = useState<TicketAttachmentItem[]>([]);
   const [serverError, setServerError] = useState<string | null>(null);
   const [createdTicket, setCreatedTicket] = useState<CreateTicketResponse["data"] | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [categoryRetry, setCategoryRetry] = useState(0);
+  const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
+  const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
+  const [subcategoriesError, setSubcategoriesError] = useState<string | null>(null);
+  const [subcategoryRetry, setSubcategoryRetry] = useState(0);
 
   const {
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     reset,
     formState: { errors },
@@ -71,33 +88,154 @@ export function CreateTicketForm() {
     },
   });
 
-  const selectedCategoryId = watch("categoryId");
-  const selectedCategory = DEFAULT_CATEGORIES.find(
-    (c) => c.id === selectedCategoryId,
+  const selectedCategoryId = useWatch({ control, name: "categoryId", defaultValue: "" });
+  const hasPendingAttachments = attachments.some(
+    (attachment) => attachment.uploadStatus !== "uploaded",
   );
-  const availableSubcategories = selectedCategory?.subCategories ?? [];
+  const ticketFormLocked = isSubmitting || createdTicket !== null;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void getCategories({ signal: controller.signal })
+      .then(setCategories)
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setCategoriesError(
+          getCategoryApiErrorMessage(error, "Failed to load active categories. Please try again."),
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCategoriesLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [categoryRetry]);
+
+  useEffect(() => {
+    if (!selectedCategoryId) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void getSubcategories(selectedCategoryId, { signal: controller.signal })
+      .then(setSubcategories)
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setSubcategoriesError(
+          getCategoryApiErrorMessage(error, "Failed to load subcategories. Please try again."),
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSubcategoriesLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedCategoryId, subcategoryRetry]);
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCatId = e.target.value;
     setValue("categoryId", newCatId, { shouldValidate: true });
-    setValue("subCategoryId", ""); // reset subcategory on category change
+    setValue("subCategoryId", "", { shouldValidate: true });
+    setSubcategories([]);
+    setSubcategoriesError(null);
+    setSubcategoriesLoading(Boolean(newCatId));
+  };
+
+  const resetTicketForm = () => {
+    reset();
+    setAttachments([]);
+    setSubcategories([]);
+    setSubcategoriesError(null);
+    setSubcategoriesLoading(false);
+  };
+
+  const uploadPendingAttachments = async (
+    ticketId: string,
+    files: TicketAttachmentItem[],
+  ): Promise<boolean> => {
+    let allUploadsSucceeded = true;
+
+    for (const attachment of files.filter((file) => file.uploadStatus !== "uploaded")) {
+      setAttachments((current) =>
+        current.map((file) =>
+          file.id === attachment.id
+            ? { ...file, uploadStatus: "uploading", uploadProgress: 0, uploadError: undefined }
+            : file,
+        ),
+      );
+
+      try {
+        const uploaded = await uploadTicketAttachment(
+          attachment.file,
+          ticketId,
+          (progress) => {
+            setAttachments((current) =>
+              current.map((file) =>
+                file.id === attachment.id ? { ...file, uploadProgress: progress } : file,
+              ),
+            );
+          },
+        );
+
+        if (uploaded.ticketId !== ticketId) {
+          throw new Error("The server associated this upload with a different ticket.");
+        }
+
+        setAttachments((current) =>
+          current.map((file) =>
+            file.id === attachment.id
+              ? {
+                  ...file,
+                  uploadStatus: "uploaded",
+                  uploadProgress: 100,
+                  attachmentId: uploaded.id,
+                  fileUrl: uploaded.fileUrl,
+                  uploadError: undefined,
+                }
+              : file,
+          ),
+        );
+      } catch (error) {
+        allUploadsSucceeded = false;
+        setAttachments((current) =>
+          current.map((file) =>
+            file.id === attachment.id
+              ? {
+                  ...file,
+                  uploadStatus: "error",
+                  uploadError: getTicketApiErrorMessage(
+                    error,
+                    "Upload failed. You can retry this file or remove it.",
+                  ),
+                }
+              : file,
+          ),
+        );
+      }
+    }
+
+    return allUploadsSucceeded;
   };
 
   const handleCancel = () => {
     if (confirm("Are you sure you want to discard your changes?")) {
-      reset();
-      setAttachments([]);
+      resetTicketForm();
       setServerError(null);
       setCreatedTicket(null);
       router.push("/dashboard");
     }
   };
 
-  const onSubmit = (values: CreateTicketFormValues) => {
+  const onSubmit = async (values: CreateTicketFormValues) => {
+    setIsSubmitting(true);
+    setSubmissionStage(createdTicket ? "uploading" : "creating");
     setServerError(null);
 
-    startTransition(async () => {
-      try {
+    try {
+      let ticket = createdTicket;
+      if (!ticket) {
         const response = await createTicket({
           subject: values.subject,
           description: values.description,
@@ -106,14 +244,56 @@ export function CreateTicketForm() {
           priority: values.priority,
         });
 
-        setCreatedTicket(response.data);
-      } catch (err) {
-        const message = getTicketApiErrorMessage(
-          err,
-          "Failed to submit ticket request. Please verify your information and try again.",
-        );
-        setServerError(message);
+        ticket = response.data;
+        setCreatedTicket(ticket);
       }
+
+      const filesToUpload = attachments.filter((file) => file.uploadStatus !== "uploaded");
+      if (filesToUpload.length > 0) {
+        setSubmissionStage("uploading");
+        const uploadsSucceeded = await uploadPendingAttachments(ticket.id, filesToUpload);
+        if (!uploadsSucceeded) {
+          const message = `Ticket ${ticket.ticketNumber} was created, but one or more attachments failed to upload. Retry the failed uploads below.`;
+          setServerError(message);
+          showErrorToast({ title: "Attachment upload failed", description: message });
+          return;
+        }
+      }
+
+      // Uploads are already associated with this ticket by the existing API.
+      // Reset only after every selected attachment has uploaded successfully.
+      resetTicketForm();
+
+      if (ticket?.ticketNumber) {
+        showSuccessToast({
+          title: "Support request submitted",
+          description: `Ticket ${ticket.ticketNumber} was received and an SLA timeline has been assigned.`,
+        });
+      } else {
+        showSuccessToast({ title: "Support request submitted" });
+      }
+    } catch (err) {
+      const message = getTicketApiErrorMessage(
+        err,
+        "Failed to submit ticket request. Please verify your information and try again.",
+      );
+      setServerError(message);
+      showErrorToast({ title: "Submission failed", description: message });
+    } finally {
+      setIsSubmitting(false);
+      setSubmissionStage(null);
+    }
+  };
+
+  const handleFormSubmit = handleSubmit(onSubmit);
+  const handleFormSubmitEvent = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (submitLock.current) return;
+
+    submitLock.current = true;
+    void handleFormSubmit(event).finally(() => {
+      submitLock.current = false;
     });
   };
 
@@ -143,26 +323,26 @@ export function CreateTicketForm() {
 
       {/* Success Banner if Ticket is Created */}
       {createdTicket && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-5 shadow-xs animate-in fade-in-50 duration-300">
+        <div className={`rounded-xl border p-5 shadow-xs animate-in fade-in-50 duration-300 ${hasPendingAttachments ? "border-amber-200 bg-amber-50/80" : "border-emerald-200 bg-emerald-50/80"}`}>
           <div className="flex items-start gap-3.5">
-            <div className="size-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-              <CheckCircle2 className="size-5" />
+            <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${hasPendingAttachments ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-600"}`}>
+              {hasPendingAttachments ? <AlertCircle className="size-5" /> : <CheckCircle2 className="size-5" />}
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-sm text-emerald-900">
-                Support request submitted successfully!
+              <h3 className={`font-semibold text-sm ${hasPendingAttachments ? "text-amber-900" : "text-emerald-900"}`}>
+                {hasPendingAttachments ? "Ticket created; attachment uploads need attention" : "Support request submitted successfully!"}
               </h3>
-              <p className="text-xs text-emerald-700 mt-1">
-                Your ticket reference number is{" "}
-                <span className="font-mono font-bold">{createdTicket.ticketNumber}</span>. Our team has received your details and an SLA timeline has been assigned.
+              <p className={`text-xs mt-1 ${hasPendingAttachments ? "text-amber-800" : "text-emerald-700"}`}>
+                {hasPendingAttachments ? "Selected attachments are not all uploaded. Retry failed uploads below. Ticket reference: " : "Your ticket reference number is "}{" "}
+                <span className="font-mono font-bold">{createdTicket.ticketNumber || "—"}</span>. Our team has received your details and an SLA timeline has been assigned.
               </p>
               <div className="flex items-center gap-3 mt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setCreatedTicket(null);
-                    reset();
-                    setAttachments([]);
+                    setServerError(null);
+                    resetTicketForm();
                   }}
                   className="px-3.5 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-medium text-emerald-800 hover:bg-emerald-100/50 shadow-2xs transition-colors"
                 >
@@ -175,6 +355,15 @@ export function CreateTicketForm() {
                   Go to Dashboard
                 </Link>
               </div>
+              {createdTicket.description != null && createdTicket.description !== "" && createdTicket.description !== "<p></p>" && (
+                <div className="mt-4 pt-4 border-t border-gray-200/70">
+                  <p className="text-xs font-semibold text-gray-700">Saved description</p>
+                  <div className="mt-1.5 max-h-44 overflow-y-auto rounded-lg bg-gray-50/80 border border-gray-100 px-3.5 py-2.5">
+                    {/* Rendered via DOMPurify — saved content is never injected raw. */}
+                    <RichTextContent html={createdTicket.description} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -199,7 +388,7 @@ export function CreateTicketForm() {
       )}
 
       {/* Main Request Form Container */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleFormSubmitEvent} className="space-y-6">
         {/* Subject Field */}
         <div className="space-y-1.5">
           <label
@@ -211,7 +400,7 @@ export function CreateTicketForm() {
           <input
             id="subject"
             type="text"
-            disabled={isPending}
+            disabled={ticketFormLocked}
             placeholder="Briefly describe your issue (e.g., Cannot log in to my account)"
             {...register("subject")}
             className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 ${
@@ -240,7 +429,7 @@ export function CreateTicketForm() {
             <div className="relative">
               <select
                 id="category"
-                disabled={isPending}
+                disabled={Boolean(ticketFormLocked || categoriesLoading || categoriesError || categories.length === 0)}
                 value={selectedCategoryId}
                 onChange={handleCategoryChange}
                 className={`w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 pr-8 text-xs text-gray-900 transition-colors focus:outline-none focus:ring-2 ${
@@ -250,9 +439,15 @@ export function CreateTicketForm() {
                 }`}
               >
                 <option value="" disabled>
-                  Select a category
+                  {categoriesLoading
+                    ? "Loading categories..."
+                    : categoriesError
+                      ? "Categories unavailable"
+                      : categories.length === 0
+                        ? "No active categories available"
+                        : "Select a category"}
                 </option>
-                {DEFAULT_CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
@@ -262,6 +457,22 @@ export function CreateTicketForm() {
                 <ChevronRight className="size-4 rotate-90 stroke-[2.5]" />
               </div>
             </div>
+            {categoriesError && (
+              <div className="flex items-center justify-between gap-2 text-[11px] text-red-600" role="alert">
+                <span>{categoriesError}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoriesLoading(true);
+                    setCategoriesError(null);
+                    setCategoryRetry((attempt) => attempt + 1);
+                  }}
+                  className="shrink-0 font-semibold underline underline-offset-2"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
             {errors.categoryId && (
               <p className="text-[11px] text-red-500 font-medium">
                 {errors.categoryId.message}
@@ -280,16 +491,22 @@ export function CreateTicketForm() {
             <div className="relative">
               <select
                 id="subcategory"
-                disabled={isPending || availableSubcategories.length === 0}
+                disabled={Boolean(ticketFormLocked || !selectedCategoryId || subcategoriesLoading || subcategoriesError || subcategories.length === 0)}
                 {...register("subCategoryId")}
                 className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 pr-8 text-xs text-gray-900 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               >
                 <option value="">
-                  {availableSubcategories.length > 0
-                    ? "Select a subcategory"
-                    : "Select a category first"}
+                  {!selectedCategoryId
+                    ? "Select a category first"
+                    : subcategoriesLoading
+                      ? "Loading subcategories..."
+                      : subcategoriesError
+                        ? "Subcategories unavailable"
+                        : subcategories.length > 0
+                          ? "Select a subcategory"
+                          : "No subcategories available"}
                 </option>
-                {availableSubcategories.map((sub) => (
+                {subcategories.map((sub) => (
                   <option key={sub.id} value={sub.id}>
                     {sub.name}
                   </option>
@@ -299,6 +516,25 @@ export function CreateTicketForm() {
                 <ChevronRight className="size-4 rotate-90 stroke-[2.5]" />
               </div>
             </div>
+            {subcategoriesError && (
+              <div className="flex items-center justify-between gap-2 text-[11px] text-red-600" role="alert">
+                <span>{subcategoriesError}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubcategoriesLoading(true);
+                    setSubcategoriesError(null);
+                    setSubcategoryRetry((attempt) => attempt + 1);
+                  }}
+                  className="shrink-0 font-semibold underline underline-offset-2"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {!subcategoriesLoading && !subcategoriesError && selectedCategoryId && subcategories.length === 0 && (
+              <p className="text-[11px] text-gray-500" role="status">No active subcategories for this category.</p>
+            )}
           </div>
         </div>
 
@@ -314,7 +550,7 @@ export function CreateTicketForm() {
               <PrioritySelector
                 value={field.value}
                 onChange={field.onChange}
-                disabled={isPending}
+                disabled={ticketFormLocked}
               />
             )}
           />
@@ -337,7 +573,7 @@ export function CreateTicketForm() {
               <RichTextEditor
                 value={field.value}
                 onChange={field.onChange}
-                disabled={isPending}
+                disabled={ticketFormLocked}
                 hasError={Boolean(errors.description)}
               />
             )}
@@ -357,7 +593,7 @@ export function CreateTicketForm() {
           <TicketAttachments
             attachments={attachments}
             onChange={setAttachments}
-            disabled={isPending}
+            disabled={isSubmitting || (createdTicket !== null && !hasPendingAttachments)}
           />
         </div>
 
@@ -365,7 +601,7 @@ export function CreateTicketForm() {
         <div className="flex items-center justify-end gap-3 pt-3">
           <button
             type="button"
-            disabled={isPending}
+            disabled={isSubmitting || (createdTicket !== null && !hasPendingAttachments)}
             onClick={handleCancel}
             className="px-5 py-2.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-2xs disabled:opacity-50"
           >
@@ -374,18 +610,24 @@ export function CreateTicketForm() {
 
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isSubmitting}
             className="px-5 py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-xs font-medium transition-colors shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isPending ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="size-3.5 animate-spin" />
-                <span>Submitting Request...</span>
+                <span>{submissionStage === "uploading" ? "Uploading Attachments..." : "Submitting Request..."}</span>
               </>
             ) : (
               <>
                 <Send className="size-3.5 rotate-45" />
-                <span>Submit Request</span>
+                <span>
+                  {createdTicket
+                    ? hasPendingAttachments
+                      ? "Retry Attachment Uploads"
+                      : "Ticket Created" 
+                    : "Submit Request"}
+                </span>
               </>
             )}
           </button>

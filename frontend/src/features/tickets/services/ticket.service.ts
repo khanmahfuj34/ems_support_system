@@ -2,8 +2,12 @@ import type { AxiosError } from "axios";
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
+  AddCommentResponse,
+  CreateCommentInput,
   CreateTicketInput,
   CreateTicketResponse,
+  ListCommentsResponse,
+  TicketDetailResponse,
 } from "../types/ticket.types";
 
 type ApiErrorBody = {
@@ -11,7 +15,7 @@ type ApiErrorBody = {
 };
 
 export async function createTicket(values: CreateTicketInput): Promise<CreateTicketResponse> {
-  const payload: Record<string, unknown> = {
+  const payload: CreateTicketInput = {
     subject: values.subject.trim(),
     description: values.description.trim(),
     categoryId: values.categoryId,
@@ -41,4 +45,34 @@ export function getTicketApiErrorMessage(error: unknown, fallback: string): stri
   }
 
   return fallback;
+}
+
+export async function getTicket(ticketId: string): Promise<TicketDetailResponse> {
+  const { data } = await apiClient.get<TicketDetailResponse>(
+    API_ENDPOINTS.tickets.byId(ticketId),
+  );
+
+  return data;
+}
+
+export async function getTicketComments(
+  ticketId: string,
+): Promise<ListCommentsResponse> {
+  const { data } = await apiClient.get<ListCommentsResponse>(
+    API_ENDPOINTS.tickets.comments(ticketId),
+  );
+
+  return data;
+}
+
+export async function addTicketComment(
+  ticketId: string,
+  input: CreateCommentInput,
+): Promise<AddCommentResponse> {
+  const { data } = await apiClient.post<AddCommentResponse>(
+    API_ENDPOINTS.tickets.comments(ticketId),
+    input,
+  );
+
+  return data;
 }

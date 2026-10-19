@@ -6,8 +6,14 @@ export const createTicketSchema = z.object({
     .min(1, "Subject is required")
     .max(255, "Subject must not exceed 255 characters")
     .trim(),
-  categoryId: z.string().min(1, "Please select a category"),
-  subCategoryId: z.string().optional(),
+  categoryId: z
+    .string()
+    .min(1, "Please select a category")
+    .regex(/^[1-9]\d*$/, "Please select a valid category"),
+  subCategoryId: z
+    .string()
+    .optional()
+    .refine((value) => !value || /^[1-9]\d*$/.test(value), "Please select a valid subcategory"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"], {
     message: "Please select a priority",
   }),

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   GraduationCap,
+  Home,
   LayoutDashboard,
   LifeBuoy,
   Ticket,
@@ -13,12 +14,15 @@ import {
   Headphones,
   ExternalLink,
   Search,
+  CircleUser,
   ChevronDown,
   Menu,
   X,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
+import { USER_ROLE } from "@/features/auth/types/auth.types";
+import { dashboardForRole } from "@/features/auth/utils/role-redirect";
 
 interface SupportDeskLayoutProps {
   children: React.ReactNode;
@@ -38,38 +42,56 @@ export function SupportDeskLayout({ children }: SupportDeskLayoutProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const navItems = [
-    {
-      label: "Dashboard",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      isActive: pathname === "/dashboard",
-    },
-    {
-      label: "Support Desk",
-      href: "/support-desk/new",
-      icon: LifeBuoy,
-      isActive: pathname.startsWith("/support-desk"),
-    },
-    {
-      label: "My Tickets",
-      href: "/tickets",
-      icon: Ticket,
-      isActive: pathname === "/tickets",
-    },
-    {
-      label: "Notifications",
-      href: "/notifications",
-      icon: Bell,
-      isActive: pathname === "/notifications",
-    },
-    {
-      label: "Profile",
-      href: "/profile",
-      icon: User,
-      isActive: pathname === "/profile",
-    },
-  ];
+  // Role-aware navigation: regular users see user features; admins see the
+  // admin console entries instead of user-only pages.
+  const isAdmin = user?.roleId === USER_ROLE.ADMIN;
+  const navItems = isAdmin
+    ? [
+        {
+          label: "Admin Dashboard",
+          href: "/admin/dashboard",
+          icon: Home,
+          isActive: pathname.startsWith("/admin"),
+        },
+        {
+          label: "Support Desk",
+          href: "/support-desk",
+          icon: CircleUser,
+          isActive: pathname.startsWith("/support-desk"),
+        },
+      ]
+    : [
+        {
+          label: "Dashboard",
+          href: "/dashboard",
+          icon: LayoutDashboard,
+          isActive: pathname === "/dashboard",
+        },
+        {
+          label: "Support Desk",
+          href: "/support-desk/new",
+          icon: LifeBuoy,
+          isActive: pathname.startsWith("/support-desk"),
+        },
+        {
+          label: "My Tickets",
+          href: "/tickets",
+          icon: Ticket,
+          isActive: pathname === "/tickets",
+        },
+        {
+          label: "Notifications",
+          href: "/notifications",
+          icon: Bell,
+          isActive: pathname === "/notifications",
+        },
+        {
+          label: "Profile",
+          href: "/profile",
+          icon: User,
+          isActive: pathname === "/profile",
+        },
+      ];
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] flex flex-col md:flex-row antialiased font-sans">
@@ -175,11 +197,11 @@ export function SupportDeskLayout({ children }: SupportDeskLayoutProps) {
         {/* Top Header Bar */}
         <header className="h-16 bg-white border-b border-gray-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30">
           {/* Search Box */}
-          <div className="relative w-72 sm:w-80">
+          <div className="relative flex-1 max-w-[180px] min-w-0 sm:w-72 sm:max-w-none sm:flex-none xl:w-[420px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search tickets, users, categories..."
               className="w-full bg-[#F3F4F6] border-none rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
             />
           </div>
@@ -224,11 +246,11 @@ export function SupportDeskLayout({ children }: SupportDeskLayoutProps) {
                     </p>
                   </div>
                   <Link
-                    href="/dashboard"
+                    href={dashboardForRole(user?.roleId ?? USER_ROLE.USER)}
                     onClick={() => setUserDropdownOpen(false)}
                     className="block px-4 py-2 text-xs text-gray-700 hover:bg-gray-50"
                   >
-                    User Dashboard
+                    {isAdmin ? "Admin Dashboard" : "User Dashboard"}
                   </Link>
                   <Link
                     href="/profile"

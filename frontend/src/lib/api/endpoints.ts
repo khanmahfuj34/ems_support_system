@@ -8,5 +8,18 @@ export const API_ENDPOINTS = {
     base: "/tickets",
     create: "/tickets",
     list: "/tickets",
+    byId: (id: string) => `/tickets/${id}`,
+    comments: (id: string) => `/tickets/${id}/comments`,
+  },
+  admin: {
+    acceptTicket: (id: string) => `/admin/tickets/${id}/accept`,
+    rejectTicket: (id: string) => `/admin/tickets/${id}/reject`,
+  },
+  uploads: {
+    create: "/uploads",
+  },
+  categories: {
+    list: "/categories",
+    subcategories: (categoryId: string) => `/categories/${categoryId}/subcategories`,
   },
 } as const;
