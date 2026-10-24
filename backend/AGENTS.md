@@ -123,4 +123,5 @@ Use the configured package manager and existing lockfile. Review migration SQL b
 
 ## Task Notes
 
+- Documented verified modules, API routes, schema, auth/security invariants, and gaps between the PRD and current implementation.
 - Keep only recent meaningful backend changes here (1–3 bullets); merge related updates and remove stale/duplicate summaries.
