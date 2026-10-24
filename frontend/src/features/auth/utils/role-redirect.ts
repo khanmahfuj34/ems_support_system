@@ -5,7 +5,7 @@ import { USER_ROLE } from "../types/auth.types";
  * Used by route protection and login flows to keep redirects role-aware.
  */
 export function dashboardForRole(roleId: number): string {
-  if (roleId === USER_ROLE.USER) return "/dashboard";
+  if (roleId === USER_ROLE.USER) return "/";
   if (roleId === USER_ROLE.ADMIN) return "/admin/dashboard";
   return "/login";
 }

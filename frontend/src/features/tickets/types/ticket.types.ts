@@ -1,41 +1,14 @@
+import type { TicketCommentData } from "@/features/comments/types/comment.types";
+
 export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
-export interface PriorityOption {
-  value: TicketPriority;
-  label: string;
-  description: string;
-  dotColor: string;
-  badgeBg: string;
-  borderColor: string;
-  selectedBg: string;
-  selectedBorder: string;
-}
-
-export interface TicketAttachmentItem {
+export interface TicketAttachmentData {
   id: string;
-  file: File;
-  name: string;
-  size: number;
-  formattedSize: string;
-  type: string;
-  previewUrl?: string;
-  uploadStatus: "queued" | "uploading" | "uploaded" | "error";
-  uploadProgress: number;
-  attachmentId?: string;
-  fileUrl?: string;
-  uploadError?: string;
-}
-
-export interface TicketAttachmentUploadResponse {
-  success: boolean;
-  data: {
-    id: string;
-    ticketId: string;
-    fileName: string;
-    fileUrl: string;
-    mimeType: string;
-    fileSize: string;
-  };
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  fileSize: string;
+  createdAt: string;
 }
 
 export interface CreateTicketInput {
@@ -89,15 +62,6 @@ export interface TicketDetailStatus {
   name: string;
 }
 
-export interface TicketAttachmentData {
-  id: string;
-  fileName: string;
-  fileUrl: string;
-  mimeType: string;
-  fileSize: string;
-  createdAt: string;
-}
-
 export interface TicketStatusHistoryEntry {
   id: string;
   oldStatusId: number | null;
@@ -142,30 +106,4 @@ export interface TicketDetailData {
 export interface TicketDetailResponse {
   message: string;
   data: TicketDetailData;
-}
-
-export interface TicketCommentData {
-  id: string;
-  ticketId: string;
-  content: string;
-  createdAt: string;
-  user: {
-    id: string;
-    name: string;
-    roleId: number;
-  };
-}
-
-export interface CreateCommentInput {
-  content: string;
-}
-
-export interface ListCommentsResponse {
-  message: string;
-  data: TicketCommentData[];
-}
-
-export interface AddCommentResponse {
-  message: string;
-  data: TicketCommentData;
 }

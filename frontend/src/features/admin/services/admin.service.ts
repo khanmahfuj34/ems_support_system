@@ -1,22 +1,11 @@
-import type { AxiosError } from "axios";
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
+import { PENDING_REVIEW_STATUS_ID } from "../utils/admin-constants";
 import type { TicketPriority } from "@/features/tickets/types/ticket.types";
 import type {
   AdminTicketListResponse,
   AdminTicketReviewResponse,
 } from "../types/admin.types";
-
-type ApiErrorBody = {
-  message?: string | string[];
-};
-
-/** Status row id of the review queue in the seeded ticket_statuses table. */
-export const PENDING_REVIEW_STATUS_ID = 2;
-
-/** Seeded status ids used by the dashboard summary cards. */
-export const IN_PROGRESS_STATUS_ID = 4;
-export const RESOLVED_STATUS_ID = 6;
 
 /**
  * Fetch only the pagination metadata of the ticket list to read the total
@@ -109,20 +98,4 @@ export async function rejectTicket(
   );
 
   return data;
-}
-
-export function getAdminApiErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
-  const axiosError = error as AxiosError<ApiErrorBody>;
-  const message = axiosError.response?.data?.message;
-
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string" && message.trim()) return message;
-  if (axiosError.code === "ERR_NETWORK") {
-    return "The SupportDesk API could not be reached. Check that the backend is running.";
-  }
-
-  return fallback;
 }

@@ -8,10 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowRight,
   BookOpen,
-  Circle,
-  CircleAlert,
   CircleCheck,
-  CircleX,
+  CircleAlert,
   Eye,
   EyeOff,
   Lock,
@@ -22,84 +20,16 @@ import {
 } from "lucide-react";
 
 import { registerSchema, type RegisterValues } from "@/features/auth/schemas/auth.schema";
-import { getApiErrorMessage, registerAccount } from "@/features/auth/services/auth.service";
+import { registerAccount } from "@/features/auth/services/auth.service";
+import { getApiErrorMessage } from "@/lib/api/api-errors";
+import { sanitizeRedirectTarget } from "@/features/auth/utils/redirect-target";
+import { AuthStateBar, FieldErrorMessage } from "@/features/auth/components/form-feedback";
+import { PasswordStrengthMeter } from "@/features/auth/components/password-strength-meter";
 
 type RegisterStatus = "default" | "error" | "loading";
 
-const STATE_BUTTON_CLASS =
-  "px-2 py-0.5 rounded text-xs font-medium transition-colors duration-150";
-const STATE_BUTTON_ACTIVE_CLASS = `${STATE_BUTTON_CLASS} bg-white text-[#070235] shadow-xs border border-[#c8c5d0]/30`;
-const STATE_BUTTON_IDLE_CLASS = `${STATE_BUTTON_CLASS} text-[#47464f] hover:text-[#070235]`;
-
 const FIELD_ERROR_CLASS =
   "ring-1 ring-[#ba1a1a] border-[#ba1a1a] focus:ring-[#ba1a1a] focus:border-[#ba1a1a]";
-
-type PasswordRules = {
-  hasLength: boolean;
-  hasNumSym: boolean;
-  hasCase: boolean;
-};
-
-function evaluatePassword(value: string): PasswordRules {
-  return {
-    hasLength: value.length >= 8,
-    hasNumSym: /[0-9!@#$%^&*(),.?":{}|<>]/.test(value),
-    hasCase: /[a-z]/.test(value) && /[A-Z]/.test(value),
-  };
-}
-
-const STRENGTH_LEVELS = {
-  empty: { count: 0, barColor: "bg-[#c8c5d0]", label: "Empty", labelColor: "text-[#787680]" },
-  weak: { count: 1, barColor: "bg-[#ba1a1a]", label: "Weak", labelColor: "text-[#ba1a1a]" },
-  fair: { count: 2, barColor: "bg-amber-500", label: "Fair", labelColor: "text-amber-600" },
-  good: { count: 3, barColor: "bg-sky-500", label: "Good", labelColor: "text-sky-700" },
-  strong: { count: 4, barColor: "bg-emerald-500", label: "Strong", labelColor: "text-emerald-700" },
-} as const;
-
-function getStrengthLevel(rules: PasswordRules, rawLength: number) {
-  const score =
-    (rules.hasLength ? 1 : 0) +
-    (rules.hasNumSym ? 1 : 0) +
-    (rules.hasCase ? 1 : 0) +
-    (rawLength >= 12 ? 1 : 0);
-
-  if (rawLength === 0) return STRENGTH_LEVELS.empty;
-  if (score <= 1) return STRENGTH_LEVELS.weak;
-  if (score === 2) return STRENGTH_LEVELS.fair;
-  if (score === 3) return STRENGTH_LEVELS.good;
-  return STRENGTH_LEVELS.strong;
-}
-
-const REQUIRED_STYLES = {
-  met: {
-    text: "text-emerald-600",
-    icon: <CircleCheck className="size-3.5" strokeWidth={2} />,
-  },
-  unmet: {
-    text: "text-[#47464f]/70",
-    icon: <Circle className="size-3.5" strokeWidth={2} />,
-  },
-} as const;
-
-function FieldErrorMessage({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p className="flex items-center gap-1 text-xs leading-4 text-[#ba1a1a] mt-1.5">
-      <CircleX className="size-3.5 shrink-0" strokeWidth={2} />
-      {message}
-    </p>
-  );
-}
-
-function RequirementItem({ met, label }: { met: boolean; label: string }) {
-  const styles = met ? REQUIRED_STYLES.met : REQUIRED_STYLES.unmet;
-  return (
-    <div className={`flex items-center gap-1 transition-colors ${styles.text}`}>
-      {styles.icon}
-      <span>{label}</span>
-    </div>
-  );
-}
 
 export function RegisterForm() {
   const [status, setStatus] = useState<RegisterStatus>("default");
@@ -128,8 +58,6 @@ export function RegisterForm() {
   const passwordValue = useWatch({ control, name: "password" }) ?? "";
   const confirmPasswordValue = useWatch({ control, name: "confirmPassword" }) ?? "";
 
-  const rules = evaluatePassword(passwordValue);
-  const strength = getStrengthLevel(rules, passwordValue.length);
   const passwordsMatch = confirmPasswordValue.length > 0 && passwordValue === confirmPasswordValue;
 
   const selectState = (next: RegisterStatus) => {
@@ -149,9 +77,10 @@ export function RegisterForm() {
 
       try {
         await registerAccount({ fullName, email, password });
-        const next = new URLSearchParams(window.location.search).get("next");
+        const target = new URLSearchParams(window.location.search).get("next");
+        const next = target ? sanitizeRedirectTarget(target) : null;
         router.replace(
-          next && next.startsWith("/")
+          next
             ? `/login?registered=1&next=${encodeURIComponent(next)}`
             : "/login?registered=1",
         );
@@ -186,43 +115,34 @@ export function RegisterForm() {
           <span>Institutional SSO Gateway v4.2</span>
         </div>
         {/* Interactive state inspector bar */}
-        <div className="flex items-center gap-1 bg-[#eff4ff] p-1 rounded-lg border border-[#c8c5d0]/40 text-xs">
-          <span className="text-[11px] font-semibold text-[#47464f] px-1.5 hidden sm:inline">
-            STATE:
-          </span>
-          <button
-            type="button"
-            aria-pressed={status === "default"}
-            className={status === "default" ? STATE_BUTTON_ACTIVE_CLASS : STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("default")}
-          >
-            Default
-          </button>
-          <button
-            type="button"
-            aria-pressed={status === "default"}
-            className={STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("default")}
-          >
-            Password Met
-          </button>
-          <button
-            type="button"
-            aria-pressed={status === "error"}
-            className={status === "error" ? STATE_BUTTON_ACTIVE_CLASS : STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("error")}
-          >
-            Inline Error
-          </button>
-          <button
-            type="button"
-            aria-pressed={isLoading}
-            className={isLoading ? STATE_BUTTON_ACTIVE_CLASS : STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("loading")}
-          >
-            Loading
-          </button>
-        </div>
+        <AuthStateBar
+          buttons={[
+            {
+              label: "Default",
+              pressed: status === "default",
+              active: status === "default",
+              onClick: () => selectState("default"),
+            },
+            {
+              label: "Password Met",
+              pressed: status === "default",
+              active: false,
+              onClick: () => selectState("default"),
+            },
+            {
+              label: "Inline Error",
+              pressed: status === "error",
+              active: status === "error",
+              onClick: () => selectState("error"),
+            },
+            {
+              label: "Loading",
+              pressed: isLoading,
+              active: isLoading,
+              onClick: () => selectState("loading"),
+            },
+          ]}
+        />
       </div>
 
       {/* Center form content area */}
@@ -340,30 +260,7 @@ export function RegisterForm() {
               </div>
 
               {/* Password strength meter & compact requirements */}
-              <div className="mt-2.5 space-y-2">
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5 flex-1">
-                    {[0, 1, 2, 3].map((index) => (
-                      <div
-                        key={index}
-                        className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
-                          index < strength.count ? strength.barColor : "bg-[#c8c5d0]"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span
-                    className={`text-[11px] font-semibold uppercase tracking-wider pl-2 ${strength.labelColor}`}
-                  >
-                    {strength.label}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-1">
-                  <RequirementItem met={rules.hasLength} label="8+ characters" />
-                  <RequirementItem met={rules.hasNumSym} label="Num &amp; symbol" />
-                  <RequirementItem met={rules.hasCase} label="Mixed case" />
-                </div>
-              </div>
+              <PasswordStrengthMeter password={passwordValue} />
               <FieldErrorMessage message={errors.password?.message} />
             </div>
 

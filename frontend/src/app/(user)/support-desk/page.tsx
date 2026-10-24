@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 
 import { ProtectedRoute } from "@/features/auth/components/protected-route";
 import { USER_ROLE } from "@/features/auth/types/auth.types";
-import { SupportDeskLayout } from "@/features/tickets/components/support-desk-layout";
-import { AdminSupportDesk } from "@/features/admin/components/admin-support-desk";
+import { AdminSupportDesk } from "@/features/admin/components/support-desk/admin-support-desk";
+
+export const instant = false;
 
 export const metadata: Metadata = {
   title: "Support Desk | EMS Support",
@@ -22,9 +23,7 @@ export const metadata: Metadata = {
 export default function SupportDeskPage() {
   return (
     <ProtectedRoute requiredRole={USER_ROLE.ADMIN}>
-      <SupportDeskLayout>
-        <AdminSupportDesk />
-      </SupportDeskLayout>
+      <AdminSupportDesk />
     </ProtectedRoute>
   );
 }

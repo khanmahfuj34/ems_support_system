@@ -38,6 +38,12 @@ export interface AdminTicketReviewResponse {
   };
 }
 
+export interface AdminQueueRow extends AdminTicketRow {
+  timeAgo: string;
+}
+
+export type AdminDetailTab = "details" | "conversation" | "attachments" | "activity";
+
 export interface AcceptTicketResponse {
   message: string;
   data: AdminTicketReviewResponse["data"];

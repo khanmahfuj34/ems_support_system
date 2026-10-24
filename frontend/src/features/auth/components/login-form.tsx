@@ -3,14 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowRight,
   BookOpen,
   CircleAlert,
   CircleCheck,
-  CircleX,
   Eye,
   EyeOff,
   Lock,
@@ -18,37 +17,17 @@ import {
 } from "lucide-react";
 
 import { loginSchema, type LoginValues } from "@/features/auth/schemas/auth.schema";
-import { getApiErrorMessage } from "@/features/auth/services/auth.service";
+import { getApiErrorMessage } from "@/lib/api/api-errors";
 import { USER_ROLE } from "@/features/auth/types/auth.types";
 import { dashboardForRole } from "@/features/auth/utils/role-redirect";
+import { sanitizeRedirectTarget } from "@/features/auth/utils/redirect-target";
+import { AuthStateBar, FieldErrorMessage } from "@/features/auth/components/form-feedback";
 import { useAuth } from "@/providers/auth-provider";
 
 type AuthStatus = "default" | "error" | "loading";
 
-const STATE_BUTTON_CLASS =
-  "px-2 py-0.5 rounded text-xs font-medium transition-colors duration-150";
-const STATE_BUTTON_ACTIVE_CLASS = `${STATE_BUTTON_CLASS} bg-white text-[#070235] shadow-xs border border-[#c8c5d0]/30`;
-const STATE_BUTTON_IDLE_CLASS = `${STATE_BUTTON_CLASS} text-[#47464f] hover:text-[#070235]`;
-
 const FIELD_ERROR_CLASS =
   "border-[#ba1a1a] focus:ring-[#ba1a1a] focus:border-[#ba1a1a]";
-
-function FieldErrorMessage({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p className="flex items-center gap-1 text-xs leading-4 text-[#ba1a1a] mt-1.5">
-      <CircleX className="size-3.5 shrink-0" strokeWidth={2} />
-      {message}
-    </p>
-  );
-}
-
-function sanitizeRedirectTarget(target: string | null): string {
-  if (target && target.startsWith("/") && !target.startsWith("//") && !target.startsWith("/\\")) {
-    return target;
-  }
-  return "/";
-}
 
 export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
   const searchParams = useSearchParams();
@@ -66,6 +45,7 @@ export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
     register,
     handleSubmit,
     clearErrors,
+    control,
     formState: { errors },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -138,35 +118,28 @@ export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
           <span>Institutional SSO Gateway v4.2</span>
         </div>
         {/* Interactive state inspector bar */}
-        <div className="flex items-center gap-1 bg-[#eff4ff] p-1 rounded-lg border border-[#c8c5d0]/40 text-xs">
-          <span className="text-[11px] font-semibold text-[#47464f] px-1.5 hidden sm:inline">
-            STATE:
-          </span>
-          <button
-            type="button"
-            aria-pressed={status === "default"}
-            className={status === "default" ? STATE_BUTTON_ACTIVE_CLASS : STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("default")}
-          >
-            Default
-          </button>
-          <button
-            type="button"
-            aria-pressed={status === "error"}
-            className={status === "error" ? STATE_BUTTON_ACTIVE_CLASS : STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("error")}
-          >
-            Error
-          </button>
-          <button
-            type="button"
-            aria-pressed={isLoading}
-            className={isLoading ? STATE_BUTTON_ACTIVE_CLASS : STATE_BUTTON_IDLE_CLASS}
-            onClick={() => selectState("loading")}
-          >
-            Loading
-          </button>
-        </div>
+        <AuthStateBar
+          buttons={[
+            {
+              label: "Default",
+              pressed: status === "default",
+              active: status === "default",
+              onClick: () => selectState("default"),
+            },
+            {
+              label: "Error",
+              pressed: status === "error",
+              active: status === "error",
+              onClick: () => selectState("error"),
+            },
+            {
+              label: "Loading",
+              pressed: isLoading,
+              active: isLoading,
+              onClick: () => selectState("loading"),
+            },
+          ]}
+        />
       </div>
 
       {/* Center form content area */}
@@ -258,15 +231,24 @@ export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#787680]">
                   <Lock className="size-[19px]" strokeWidth={2} />
                 </div>
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  className={`w-full h-10 pl-10 pr-10 text-[#0d1c2e] text-sm leading-5 bg-white border border-[#c8c5d0] rounded-lg placeholder:text-[#787680]/70 focus:outline-none focus:ring-2 focus:ring-[#006591] focus:border-[#006591] transition-all ${
-                    errors.password ? FIELD_ERROR_CLASS : ""
-                  }`}
-                  {...register("password")}
+                <Controller
+                  name="password"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      placeholder="Enter your password"
+                      className={`w-full h-10 pl-10 pr-10 text-[#0d1c2e] text-sm leading-5 bg-white border border-[#c8c5d0] rounded-lg placeholder:text-[#787680]/70 focus:outline-none focus:ring-2 focus:ring-[#006591] focus:border-[#006591] transition-all ${
+                        errors.password ? FIELD_ERROR_CLASS : ""
+                      }`}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  )}
                 />
                 <button
                   aria-label={showPassword ? "Hide password" : "Show password"}

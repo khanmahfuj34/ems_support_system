@@ -1,4 +1,4 @@
-import type { AxiosError, AxiosRequestConfig } from "axios";
+import type { AxiosRequestConfig } from "axios";
 
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
@@ -13,10 +13,6 @@ interface SubcategoryListResponse {
   success: boolean;
   data: SubCategory[];
 }
-
-type ApiErrorBody = {
-  message?: string | string[];
-};
 
 export async function getCategories(config?: AxiosRequestConfig): Promise<Category[]> {
   const { data } = await apiClient.get<CategoryListResponse>(
@@ -35,17 +31,4 @@ export async function getSubcategories(
     config,
   );
   return data.data;
-}
-
-export function getCategoryApiErrorMessage(error: unknown, fallback: string): string {
-  const axiosError = error as AxiosError<ApiErrorBody>;
-  const message = axiosError.response?.data?.message;
-
-  if (Array.isArray(message)) return message.join(" ");
-  if (typeof message === "string" && message.trim()) return message;
-  if (axiosError.code === "ERR_NETWORK") {
-    return "The SupportDesk API could not be reached. Check that the backend is running.";
-  }
-
-  return fallback;
 }
