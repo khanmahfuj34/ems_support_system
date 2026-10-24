@@ -87,6 +87,7 @@ Use the lockfile/package manager already present. Don't update dependencies sole
 
 ## Task Notes
 
+- Added route/feature/API ownership guidance, auth behavior, and verified implementation boundaries for future agents.
 - Keep only recent meaningful frontend changes here (1–3 bullets); merge related updates and remove stale/duplicate summaries.
 
 <!-- BEGIN:nextjs-agent-rules -->
