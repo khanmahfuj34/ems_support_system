@@ -54,7 +54,7 @@ export function AuthBrandPanel() {
           </div>
           <div>
             <span className="block text-lg leading-6 font-bold tracking-tight text-white">
-              Aethel Academy
+              EduLearn
             </span>
             <span className="block text-xs leading-4 text-[#d5e3fc] tracking-wide opacity-85">
               Scholarly Rigor &nbsp;·&nbsp; Modern Discovery
@@ -70,7 +70,7 @@ export function AuthBrandPanel() {
           <div className="relative rounded-lg overflow-hidden h-64 xl:h-72 w-full">
             <Image
               src="/images/LoginImg/loginimg.png"
-              alt="Aethel Academy Grand Library"
+              alt="EduLearn Academy Grand Library"
               fill
               priority
               sizes="(min-width: 1280px) 46vw, 50vw"

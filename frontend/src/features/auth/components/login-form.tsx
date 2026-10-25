@@ -110,7 +110,7 @@ export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
             <BookOpen className="size-4" strokeWidth={2} />
           </div>
           <span className="text-base font-bold text-[#070235] tracking-tight font-[family-name:var(--font-auth-jakarta)]">
-            Aethel Academy
+            EduLearn
           </span>
         </div>
         <div className="hidden lg:flex items-center gap-1.5 text-xs font-medium text-[#47464f]">
