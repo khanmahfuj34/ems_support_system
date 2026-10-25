@@ -54,6 +54,7 @@ export async function listPendingReviewTickets(): Promise<AdminTicketListRespons
  */
 export async function listTickets(options?: {
   page?: number;
+  limit?: number;
   statusId?: number;
   categoryId?: string;
   priority?: TicketPriority;
@@ -63,7 +64,7 @@ export async function listTickets(options?: {
     {
       params: {
         page: options?.page ?? 1,
-        limit: 10,
+        limit: options?.limit ?? 10,
         sortBy: "createdAt",
         sortOrder: "desc",
         ...(options?.statusId !== undefined

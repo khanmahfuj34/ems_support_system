@@ -14,7 +14,6 @@ import {
   UserRound,
   Headphones,
   ExternalLink,
-  Search,
   CircleUser,
   BarChart3,
   Settings,
@@ -27,6 +26,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { USER_ROLE } from "@/features/auth/types/auth.types";
 import { dashboardForRole } from "@/features/auth/utils/role-redirect";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
+import { GlobalSearch } from "@/features/search/components/global-search";
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
@@ -246,16 +246,12 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="h-16 bg-white border-b border-gray-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30">
-          {/* Search Box */}
-          <div className="relative flex-1 max-w-[180px] min-w-0 sm:w-72 sm:max-w-none sm:flex-none xl:w-[420px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search tickets, users, categories..."
-              className="w-full bg-[#F3F4F6] border-none rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
-            />
-          </div>
+        <header className="h-16 bg-white border-b border-gray-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 md:z-50">
+          {/* Global Ticket Search */}
+          <GlobalSearch
+            className="flex-1 max-w-[180px] min-w-0 sm:w-72 sm:max-w-none sm:flex-none xl:w-[420px]"
+            placeholder="Search tickets, categories, numbers..."
+          />
 
           {/* Right Section: Notification & User Profile */}
           <div className="flex items-center gap-4 sm:gap-5">

@@ -4,8 +4,10 @@ import {
   IsIn,
   IsInt,
   IsOptional,
+  IsString,
   Matches,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -53,4 +55,16 @@ export class ListTicketsQueryDto {
   @IsOptional()
   @IsIn(SORT_ORDERS)
   sortOrder: (typeof SORT_ORDERS)[number] = 'desc';
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  })
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 }

@@ -255,19 +255,55 @@ export class TicketsService {
       where.statusId = query.statusId;
     }
 
-    if (query.priority !== undefined) {
-      // Filter by the effective priority selected by the admin, if present.
-      where.OR = [
-        { adminPriority: query.priority },
-        {
-          adminPriority: null,
-          userPriority: query.priority,
-        },
-      ];
-    }
-
     if (query.categoryId !== undefined) {
       where.categoryId = BigInt(query.categoryId);
+    }
+
+    const andConditions: Prisma.TicketWhereInput[] = [];
+
+    if (query.priority !== undefined) {
+      // Filter by the effective priority selected by the admin, if present.
+      andConditions.push({
+        OR: [
+          { adminPriority: query.priority },
+          {
+            adminPriority: null,
+            userPriority: query.priority,
+          },
+        ],
+      });
+    }
+
+    const searchTerm = query.search?.trim();
+    if (searchTerm) {
+      const searchConditions: Prisma.TicketWhereInput[] = [
+        { subject: { contains: searchTerm } },
+        { description: { contains: searchTerm } },
+        { ticketNumber: { contains: searchTerm } },
+        { category: { name: { contains: searchTerm } } },
+        { subCategory: { name: { contains: searchTerm } } },
+      ];
+
+      // Support searching by numeric ticket ID if the search term is a valid positive integer
+      if (/^[1-9]\d{0,18}$/.test(searchTerm)) {
+        searchConditions.push({ id: BigInt(searchTerm) });
+      }
+
+      // Requester name and email search are available only for administrators
+      if (Number(user.roleId) === UserRoleId.ADMIN) {
+        searchConditions.push(
+          { user: { name: { contains: searchTerm } } },
+          { user: { email: { contains: searchTerm } } },
+        );
+      }
+
+      andConditions.push({ OR: searchConditions });
+    }
+
+    if (andConditions.length === 1) {
+      Object.assign(where, andConditions[0]);
+    } else if (andConditions.length > 1) {
+      where.AND = andConditions;
     }
 
     const orderBy: Prisma.TicketOrderByWithRelationInput = {
