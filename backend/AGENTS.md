@@ -123,5 +123,8 @@ Use the configured package manager and existing lockfile. Review migration SQL b
 
 ## Task Notes
 
-- Documented verified modules, API routes, schema, auth/security invariants, and gaps between the PRD and current implementation.
 - Keep only recent meaningful backend changes here (1–3 bullets); merge related updates and remove stale/duplicate summaries.
+- Added admin ticket lifecycle management with validated transitions, required reasons/resolution summaries, and transactional status history/activity logging; expanded specs for review accept/reject, not-found, validation guards, reopen SLA breach/on-track, and concurrency conflicts.
+- Integrated requester notifications: `NotificationsModule` is registered in `AppModule`, imported by `AdminModule`, and `AdminService` creates `TICKET_ACCEPTED`/`TICKET_REJECTED`/`TICKET_STATUS_CHANGED` notifications via `NotificationsService.createTicketNotification(tx, ...)` inside the ticket transactions, so notifications commit/roll back with status updates.
+- Notification-focused specs (`notifications.controller.spec.ts`, `notifications.service.spec.ts`, and rollback cases in `admin.service.spec.ts`) cover JWT-guarded routes, user scoping, unread filtering, pagination/unread count, invalid IDs, ownership 404s, accept/reject/lifecycle notification payloads, and aborting the ticket transaction when the notification write fails.
+- Unit-test runner (`vitest.config.ts`) sets `test.fileParallelism: false` so `npm test` runs reliably without parallel test workers; tsconfig path resolution uses Vite's native `resolve: { tsconfigPaths: true }` (Vite 8+), not the removed `vite-tsconfig-paths` package. Do not raise hook timeouts to mask parallelism-related `beforeEach` flakiness.

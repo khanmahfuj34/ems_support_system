@@ -18,6 +18,7 @@ import {
 import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { AdminService } from './admin.service.js';
 import { RejectTicketDto } from './dto/reject-ticket.dto.js';
+import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto.js';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -57,6 +58,20 @@ export class AdminController {
     @Req() request: AuthenticatedRequest,
   ) {
     return this.adminService.rejectTicket(
+      id,
+      request.user.id,
+      dto,
+    );
+  }
+
+  @Patch('tickets/:id/status')
+  @HttpCode(HttpStatus.OK)
+  updateTicketStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketStatusDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.adminService.updateTicketStatus(
       id,
       request.user.id,
       dto,

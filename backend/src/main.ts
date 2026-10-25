@@ -6,9 +6,10 @@ async function bootstrap() {
   const { AppModule, ObserveEnabled, ObserveInstrument } = await import(
     './app.module.js'
   );
-  const app = await NestFactory.create(AppModule, {
-    ...(ObserveEnabled ? { instrument: ObserveInstrument } : {}),
-  });
+  const app = await NestFactory.create(
+    AppModule,
+    ObserveEnabled ? { instrument: ObserveInstrument } : undefined,
+  );
 
   // Request body validation
   app.useGlobalPipes(

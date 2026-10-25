@@ -16,6 +16,7 @@ import { PrismaModule } from './database/prisma/prisma.module.js';
 import { AdminModule } from './module/admin/admin.module.js';
 import { UploadsController } from './module/uploads/uploads.controller.js';
 import { UploadsModule } from './module/uploads/uploads.module.js';
+import { NotificationsModule } from './module/notifications/notifications.module.js';
 
 export const { ObserveModule, ObserveInstrument } =
   createObserveModule();
@@ -51,6 +52,7 @@ const observeEnabled =
     CommentsModule,
     AdminModule,
     UploadsModule,
+    NotificationsModule,
   ],
   controllers: [AppController, UploadsController],
   providers: [AppService],
