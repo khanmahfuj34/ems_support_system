@@ -88,6 +88,8 @@ Use the lockfile/package manager already present. Don't update dependencies sole
 ## Task Notes
 
 - Added route/feature/API ownership guidance, auth behavior, and verified implementation boundaries for future agents.
+- Added the notifications feature on the already-existing placeholder folders: `notification.service.ts` (real `/api/v1/notifications` endpoints), `use-notifications.ts` hook (pagination, unread count, mark-read/mark-all-read with toasts, silent `refresh`, and a `supportdesk:notifications-updated` window event), `notification-list.tsx`, and the `/notifications` page; ticket notifications link to `/support-desk/:id`. Timestamps come from the API, `admin-format`/`pagination` helpers are reused for relative time and page items.
+- Integrated the workspace bell with real data: `notification-bell.tsx`/`notification-dropdown.tsx` reuse the notification hook for the live unread badge, compact recent list, mark-read/mark-all-read, ticket navigation, refresh on open, and 60s polling (timers/listeners cleaned up); the admin sidebar "Notifications" link now points to `/notifications`.
 - Keep only recent meaningful frontend changes here (1–3 bullets); merge related updates and remove stale/duplicate summaries.
 
 <!-- BEGIN:nextjs-agent-rules -->

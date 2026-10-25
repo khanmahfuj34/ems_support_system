@@ -22,4 +22,9 @@ export const API_ENDPOINTS = {
     list: "/categories",
     subcategories: (categoryId: string) => `/categories/${categoryId}/subcategories`,
   },
+  notifications: {
+    list: "/notifications",
+    markRead: (id: string) => `/notifications/${id}/read`,
+    readAll: "/notifications/read-all",
+  },
 } as const;

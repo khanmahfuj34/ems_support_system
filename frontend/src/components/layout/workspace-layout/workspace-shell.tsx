@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/providers/auth-provider";
 import { USER_ROLE } from "@/features/auth/types/auth.types";
 import { dashboardForRole } from "@/features/auth/utils/role-redirect";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
@@ -78,10 +79,9 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
         },
         {
           label: "Notifications",
-          href: "",
+          href: "/notifications",
           icon: Bell,
-          isActive: false,
-          disabled: true,
+          isActive: pathname.startsWith("/notifications"),
         },
         {
           label: "Reports",
@@ -259,15 +259,8 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
 
           {/* Right Section: Notification & User Profile */}
           <div className="flex items-center gap-4 sm:gap-5">
-            {/* Notification Bell with Badge */}
-            <button
-              type="button"
-              className="relative p-1.5 text-gray-500 hover:text-gray-800 transition-colors"
-              title="Notifications"
-            >
-              <Bell className="size-5" />
-              <span className="absolute top-1 right-1 size-2 rounded-full bg-[#EF4444] ring-2 ring-white" />
-            </button>
+            {/* Notification Bell with live unread badge + dropdown */}
+            <NotificationBell />
 
             {/* User Profile Avatar & Name */}
             <div className="relative">
