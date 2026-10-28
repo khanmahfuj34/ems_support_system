@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 import {
+  containsPattern,
   prefixPattern,
   wordPrefixPattern,
 } from '../common/search-normalization.js';
@@ -21,9 +22,8 @@ export const USER_PROFILE_SELECT = {
 } satisfies Prisma.UserSelect;
 
 /**
- * Ids of users matching: exact id, name starts with / any word starts with,
- * email starts with. Newest id first, keyset by id.
- * (email has a unique index. name has none: add @@index([name]) in schema.)
+ * Search exact user ID, name prefixes/word prefixes, and email substrings.
+ * Email substring matching supports queries such as "@gmail.com".
  */
 export async function findUserIds(
   db: Prisma.TransactionClient,
@@ -36,6 +36,7 @@ export async function findUserIds(
     Prisma.sql`u.name LIKE ${prefixPattern(term)} ESCAPE '!'`,
     Prisma.sql`u.name LIKE ${wordPrefixPattern(term)} ESCAPE '!'`,
     Prisma.sql`u.email LIKE ${prefixPattern(term)} ESCAPE '!'`,
+    Prisma.sql`u.email LIKE ${containsPattern(term)} ESCAPE '!'`,
   ];
   if (numericId !== null) parts.push(Prisma.sql`u.id = ${numericId}`);
 
@@ -47,7 +48,8 @@ export async function findUserIds(
     FROM users u
     WHERE (${Prisma.join(parts, ' OR ')}) ${after}
     ORDER BY u.id DESC
-    LIMIT ${Prisma.raw(String(Math.trunc(take)))}`;
+    LIMIT ${Prisma.raw(String(Math.trunc(take)))}
+  `;
 
   return rows.map((row) => BigInt(row.id));
 }
