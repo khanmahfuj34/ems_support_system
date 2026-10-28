@@ -59,10 +59,9 @@ export function useAdminOverview() {
     const rowsPromise = Promise.all([
       listTickets({
         statusId: PENDING_REVIEW_STATUS_ID,
-        page: 1,
         limit: 5,
       }),
-      listTickets({ page: 1, limit: 5 }),
+      listTickets({ limit: 5 }),
     ]);
 
     Promise.all([statsPromise, rowsPromise])

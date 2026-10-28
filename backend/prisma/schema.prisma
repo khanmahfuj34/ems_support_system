@@ -147,6 +147,7 @@ model Ticket {
 
   subject            String    @db.VarChar(255)
   description        String    @db.LongText
+  descriptionPreview String    @default("") @map("description_preview") @db.VarChar(200)
 
   userPriority       Priority  @default(MEDIUM) @map("user_priority")
   adminPriority      Priority? @map("admin_priority")
@@ -190,6 +191,7 @@ model Ticket {
   @@index([createdAt])
   @@index([resolutionDueAt])
   @@index([slaStatus])
+  @@index([userId, createdAt], map: "tickets_user_id_created_at_idx")
   @@index([userId, statusId, createdAt])
   @@map("tickets")
 }

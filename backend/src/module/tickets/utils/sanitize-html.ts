@@ -1,4 +1,5 @@
 import DOMPurify, { type Config } from 'isomorphic-dompurify';
+import { decodeHTML } from 'entities';
 
 /**
  * Strict allowlist matching exactly what the Tiptap editor emits for
@@ -50,11 +51,12 @@ export function sanitizeTicketDescription(html: string): string {
  * Used to enforce that a description still contains real text.
  */
 export function stripHtmlTags(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/<\/(p|h[1-6]|li|blockquote|pre|div)>/gi, ' ')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/gi, ' ')
+  return decodeHTML(
+    html
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/(p|h[1-6]|li|blockquote|pre|div)>/gi, ' ')
+      .replace(/<[^>]*>/g, ''),
+  )
     .replace(/\s+/g, ' ')
     .trim();
 }

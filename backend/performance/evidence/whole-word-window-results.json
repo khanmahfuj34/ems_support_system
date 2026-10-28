@@ -1,0 +1,556 @@
+{
+  "sourceDatabase": "ems_support_test",
+  "scratchDatabase": "ems_support_test_wholeword_spike",
+  "methodology": "Scratch-only measurement. description_text built with the shared buildTicketDescriptionTextFields helper. Standard parser FULLTEXT; no application code changed.",
+  "windowsDays": [
+    30,
+    90
+  ],
+  "classes": [
+    {
+      "name": "rare-term",
+      "term": "RareSearchTermQzv731"
+    },
+    {
+      "name": "no-match",
+      "term": "NoMatchTokenQzv947"
+    },
+    {
+      "name": "common-term",
+      "term": "login"
+    },
+    {
+      "name": "prefix-term",
+      "term": "pass"
+    },
+    {
+      "name": "typo-term",
+      "term": "lgin"
+    }
+  ],
+  "warmups": 5,
+  "measuredQueriesPerClassWindowPlan": 100,
+  "results": [
+    {
+      "plan": "A-fulltext",
+      "windowDays": 30,
+      "class": "rare-term",
+      "term": "RareSearchTermQzv731",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 100,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1 rows=1) (actual time=339..339 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=1 rows=1) (actual time=339..339 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+RareSearchTermQzv731' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1 rows=1) (actual time=338..338 rows=0 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+RareSearchTermQzv731')  (cost=1 rows=1) (actual time=5.3..329 rows=100 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 1.211,
+        "p95_ms": 2.976,
+        "max_ms": 9.396
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 30,
+      "class": "rare-term",
+      "term": "RareSearchTermQzv731",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 872,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=2.11 rows=0.05) (actual time=1454..1454 rows=0 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])RareSearchTermQzv731([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])RareSearchTermQzv731([^[:alnum:]_]|$)','i'))  (cost=2.11 rows=0.05) (actual time=1454..1454 rows=0 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-09-27 15:17:23.016' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=2.11 rows=1) (actual time=3.43..1392 rows=872 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 33.931,
+        "p95_ms": 36,
+        "max_ms": 43.813
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 30,
+      "class": "no-match",
+      "term": "NoMatchTokenQzv947",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 0,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.968 rows=1) (actual time=0.0107..0.0107 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.968 rows=1) (actual time=0.01..0.01 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+NoMatchTokenQzv947' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.968 rows=1) (actual time=0.0051..0.0051 rows=0 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+NoMatchTokenQzv947')  (cost=0.968 rows=1) (actual time=0.0039..0.0039 rows=0 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 0.696,
+        "p95_ms": 1.316,
+        "max_ms": 4.166
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 30,
+      "class": "no-match",
+      "term": "NoMatchTokenQzv947",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 872,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=2.04 rows=0.05) (actual time=15.6..15.6 rows=0 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])NoMatchTokenQzv947([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])NoMatchTokenQzv947([^[:alnum:]_]|$)','i'))  (cost=2.04 rows=0.05) (actual time=15.6..15.6 rows=0 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-09-27 15:17:27.852' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=2.04 rows=1) (actual time=0.0312..12.8 rows=872 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 35.055,
+        "p95_ms": 44.997,
+        "max_ms": 50.586
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 30,
+      "class": "common-term",
+      "term": "login",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 2470,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.968 rows=1) (actual time=4167..4167 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.968 rows=1) (actual time=4167..4167 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+login' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.968 rows=1) (actual time=2270..4167 rows=1 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+login')  (cost=0.968 rows=1) (actual time=173..4149 rows=2470 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 100,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 5113.097,
+        "p95_ms": 5126.526,
+        "max_ms": 5245.393
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 30,
+      "class": "common-term",
+      "term": "login",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 102,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.58 rows=0.05) (actual time=13.5..155 rows=21 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])login([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])login([^[:alnum:]_]|$)','i'))  (cost=1.58 rows=0.05) (actual time=13.5..155 rows=21 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-09-27 15:26:33.547' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.58 rows=1) (actual time=5.57..153 rows=102 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 3.351,
+        "p95_ms": 3.888,
+        "max_ms": 4.764
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 30,
+      "class": "prefix-term",
+      "term": "pass",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 9102,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.737 rows=1) (actual time=4900..4900 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.737 rows=1) (actual time=4900..4900 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+pass*' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.737 rows=1) (actual time=499..4900 rows=8 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+pass*')  (cost=0.737 rows=1) (actual time=41.5..4879 rows=9102 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 100,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 5031.215,
+        "p95_ms": 5037.839,
+        "max_ms": 5062.689
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 30,
+      "class": "prefix-term",
+      "term": "pass",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 300,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.53 rows=0.05) (actual time=13.8..413 rows=21 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])pass[[:alnum:]_]*','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])pass[[:alnum:]_]*','i'))  (cost=1.53 rows=0.05) (actual time=13.8..413 rows=21 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-09-27 15:35:27.197' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.53 rows=1) (actual time=7.35..406 rows=300 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 7.215,
+        "p95_ms": 12.889,
+        "max_ms": 14.259
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 30,
+      "class": "typo-term",
+      "term": "lgin",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 0,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.716 rows=1) (actual time=0.0153..0.0153 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.716 rows=1) (actual time=0.0146..0.0146 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+lgin' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.716 rows=1) (actual time=0.0073..0.0073 rows=0 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+lgin')  (cost=0.716 rows=1) (actual time=0.0061..0.0061 rows=0 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 1.223,
+        "p95_ms": 2.204,
+        "max_ms": 6.614
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 30,
+      "class": "typo-term",
+      "term": "lgin",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 872,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.54 rows=0.05) (actual time=826..826 rows=0 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])lgin([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])lgin([^[:alnum:]_]|$)','i'))  (cost=1.54 rows=0.05) (actual time=826..826 rows=0 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-09-27 15:35:28.601' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 30 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.54 rows=1) (actual time=0.0324..817 rows=872 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 32.941,
+        "p95_ms": 36.316,
+        "max_ms": 37.444
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 90,
+      "class": "rare-term",
+      "term": "RareSearchTermQzv731",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 100,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.72 rows=1) (actual time=192..192 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.72 rows=1) (actual time=192..192 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+RareSearchTermQzv731' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.72 rows=1) (actual time=191..191 rows=0 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+RareSearchTermQzv731')  (cost=0.72 rows=1) (actual time=3.57..191 rows=100 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 1.196,
+        "p95_ms": 1.864,
+        "max_ms": 2.429
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 90,
+      "class": "rare-term",
+      "term": "RareSearchTermQzv731",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 2738,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.55 rows=0.05) (actual time=2830..2830 rows=0 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])RareSearchTermQzv731([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])RareSearchTermQzv731([^[:alnum:]_]|$)','i'))  (cost=1.55 rows=0.05) (actual time=2830..2830 rows=0 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-07-29 15:35:32.984' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.55 rows=1) (actual time=0.0406..2793 rows=2738 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 117.069,
+        "p95_ms": 159.918,
+        "max_ms": 255.56
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 90,
+      "class": "no-match",
+      "term": "NoMatchTokenQzv947",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 0,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.732 rows=1) (actual time=0.0162..0.0162 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.732 rows=1) (actual time=0.0154..0.0154 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+NoMatchTokenQzv947' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.732 rows=1) (actual time=0.0075..0.0075 rows=0 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+NoMatchTokenQzv947')  (cost=0.732 rows=1) (actual time=0.0064..0.0064 rows=0 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 0.633,
+        "p95_ms": 1.508,
+        "max_ms": 3.207
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 90,
+      "class": "no-match",
+      "term": "NoMatchTokenQzv947",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 2738,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.57 rows=0.05) (actual time=129..129 rows=0 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])NoMatchTokenQzv947([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])NoMatchTokenQzv947([^[:alnum:]_]|$)','i'))  (cost=1.57 rows=0.05) (actual time=129..129 rows=0 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-07-29 15:35:49.375' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.57 rows=1) (actual time=0.0363..108 rows=2738 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 124.619,
+        "p95_ms": 255.276,
+        "max_ms": 525.069
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 90,
+      "class": "common-term",
+      "term": "login",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 60153,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.732 rows=1) (actual time=4349..4349 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.732 rows=1) (actual time=4349..4349 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+login' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.732 rows=1) (actual time=168..4348 rows=156 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+login')  (cost=0.732 rows=1) (actual time=163..4289 rows=60153 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 100,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 5120.921,
+        "p95_ms": 5386.479,
+        "max_ms": 6050.483
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 90,
+      "class": "common-term",
+      "term": "login",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 102,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.55 rows=0.05) (actual time=3.33..16.9 rows=21 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])login([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])login([^[:alnum:]_]|$)','i'))  (cost=1.55 rows=0.05) (actual time=3.33..16.9 rows=21 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-07-29 15:45:12.001' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.55 rows=1) (actual time=0.762..15.3 rows=102 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 5.752,
+        "p95_ms": 7.783,
+        "max_ms": 8.707
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 90,
+      "class": "prefix-term",
+      "term": "pass",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 33099,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.722 rows=1) (actual time=4869..4869 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.722 rows=1) (actual time=4869..4869 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+pass*' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.722 rows=1) (actual time=215..4868 rows=89 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+pass*')  (cost=0.722 rows=1) (actual time=49.8..4777 rows=33099 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 56,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 5021.204,
+        "p95_ms": 5062.044,
+        "max_ms": 5223.36
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 90,
+      "class": "prefix-term",
+      "term": "pass",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 300,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.56 rows=0.05) (actual time=2.9..41.3 rows=21 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])pass[[:alnum:]_]*','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])pass[[:alnum:]_]*','i'))  (cost=1.56 rows=0.05) (actual time=2.9..41.3 rows=21 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-07-29 15:53:51.224' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.56 rows=1) (actual time=0.712..39.1 rows=300 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 9.31,
+        "p95_ms": 11.452,
+        "max_ms": 14.914
+      }
+    },
+    {
+      "plan": "A-fulltext",
+      "windowDays": 90,
+      "class": "typo-term",
+      "term": "lgin",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 0,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=0.729 rows=1) (actual time=0.0147..0.0147 rows=0 loops=1)\n    -> Sort row IDs: ems_support_test_wholeword_spike.ticket_search.created_at DESC, ems_support_test_wholeword_spike.ticket_search.ticket_id DESC, limit input to 21 row(s) per chunk  (cost=0.729 rows=1) (actual time=0.0136..0.0136 rows=0 loops=1)\n        -> Filter: ((match ems_support_test_wholeword_spike.ticket_search.`subject`,ems_support_test_wholeword_spike.ticket_search.description_text against ('+lgin' in boolean mode)) and (ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=0.729 rows=1) (actual time=0.007..0.007 rows=0 loops=1)\n            -> Full-text index search on ticket_search using ft_subject_description (subject = '+lgin')  (cost=0.729 rows=1) (actual time=0.0055..0.0055 rows=0 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 1.621,
+        "p95_ms": 2.201,
+        "max_ms": 3.815
+      }
+    },
+    {
+      "plan": "B-date-first",
+      "windowDays": 90,
+      "class": "typo-term",
+      "term": "lgin",
+      "filters": {
+        "statusId": "4",
+        "categoryId": "3"
+      },
+      "rowsExamined": 2738,
+      "explainAnalyze": [
+        {
+          "EXPLAIN": "-> Limit: 21 row(s)  (cost=1.56 rows=0.05) (actual time=1129..1129 rows=0 loops=1)\n    -> Filter: (regexp_like(ems_support_test_wholeword_spike.ticket_search.`subject`,'(^|[^[:alnum:]_])lgin([^[:alnum:]_]|$)','i') or regexp_like(ems_support_test_wholeword_spike.ticket_search.description_text,'(^|[^[:alnum:]_])lgin([^[:alnum:]_]|$)','i'))  (cost=1.56 rows=0.05) (actual time=1129..1129 rows=0 loops=1)\n        -> Index range scan on ticket_search using idx_created_status_category over ('2026-07-29 15:53:52.446' <= created_at AND 4 <= status_id AND 3 <= category_id) (reverse), with index condition: ((ems_support_test_wholeword_spike.ticket_search.created_at >= <cache>((now(3) - interval 90 day))) and (ems_support_test_wholeword_spike.ticket_search.status_id = 4) and (ems_support_test_wholeword_spike.ticket_search.category_id = 3))  (cost=1.56 rows=1) (actual time=0.0534..1073 rows=2738 loops=1)\n"
+        }
+      ],
+      "explainError": null,
+      "timeoutCount": 0,
+      "otherError": null,
+      "timing": {
+        "completed": 100,
+        "p50_ms": 145.632,
+        "p95_ms": 445.106,
+        "max_ms": 642.487
+      }
+    }
+  ],
+  "mysql": {
+    "version": "26.7.0",
+    "version_comment": "MySQL Community Server - GPL"
+  },
+  "sourceRows": "1000000",
+  "statusFilter": "4",
+  "categoryFilter": "3",
+  "filterCombinationRows": "11353",
+  "copyRows": 1000000,
+  "copyDurationMs": 39835.8,
+  "indexBuilds": [
+    {
+      "name": "idx_created_status_category",
+      "durationMs": 4163.1
+    },
+    {
+      "name": "ft_subject_description",
+      "durationMs": 301306.3
+    }
+  ],
+  "scratchFullTextRows": "239926"
+}

@@ -14,9 +14,6 @@ import {
 } from "lucide-react";
 
 import {
-  buildPageItemsWithGaps,
-} from "../../utils/pagination";
-import {
   ADMIN_PRIORITIES,
   DATE_RANGES,
   type DateRangeValue,
@@ -46,13 +43,11 @@ export function TicketQueue({
   onSelect,
   checkedIds,
   onCheckedIdsChange,
-  isClientFiltered,
-  page,
-  onPageChange,
-  serverTotal,
-  serverTotalPages,
-  rangeStart,
-  rangeEnd,
+  pageNumber,
+  canGoPrevious,
+  hasMore,
+  onPrevious,
+  onNext,
 }: {
   showFilters: boolean;
   searchTerm: string;
@@ -72,13 +67,11 @@ export function TicketQueue({
   onSelect: (ticket: AdminTicketRow) => void;
   checkedIds: Set<string>;
   onCheckedIdsChange: (update: (current: Set<string>) => Set<string>) => void;
-  isClientFiltered: boolean;
-  page: number;
-  onPageChange: (next: number) => void;
-  serverTotal: number;
-  serverTotalPages: number;
-  rangeStart: number;
-  rangeEnd: number;
+  pageNumber: number;
+  canGoPrevious: boolean;
+  hasMore: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
 }) {
   return (
     <section
@@ -203,14 +196,10 @@ export function TicketQueue({
           <div className="px-6 py-12 text-center">
             <Inbox className="mx-auto size-8 text-gray-300" />
             <p className="mt-2 text-sm font-medium text-gray-600">
-              {isClientFiltered
-                ? "No tickets on this page match your filters."
-                : "No tickets found."}
+              No tickets found.
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              {isClientFiltered
-                ? "Try clearing the search or date range."
-                : "Submitted tickets will appear here."}
+              Try adjusting your search or filters.
             </p>
           </div>
         )}
@@ -315,49 +304,25 @@ export function TicketQueue({
       {listState === "success" && (
         <div className="border-t border-gray-100 px-3 sm:px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-gray-500">
-            {isClientFiltered
-              ? `${tickets.length} match on this page`
-              : `Showing ${rangeStart}–${rangeEnd} of ${serverTotal} tickets`}
+            Page {pageNumber}
+            {tickets.length > 0
+              ? ` · Showing ${tickets.length} ticket${tickets.length === 1 ? "" : "s"}`
+              : ""}
           </p>
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => onPageChange(Math.max(1, page - 1))}
-              disabled={page === 1}
+              onClick={onPrevious}
+              disabled={!canGoPrevious}
               aria-label="Previous page"
               className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="size-4" />
             </button>
-            {buildPageItemsWithGaps(page, serverTotalPages).map(
-              (item, index) =>
-                item === "gap" ? (
-                  <span
-                    key={`gap-${index}`}
-                    className="px-1 text-xs text-gray-400"
-                  >
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => onPageChange(item)}
-                    aria-current={item === page ? "page" : undefined}
-                    className={`inline-flex h-8 w-8 items-center justify-center rounded-md border text-xs font-semibold transition-colors ${
-                      item === page
-                        ? "border-[#2563EB] bg-[#2563EB] text-white"
-                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ),
-            )}
             <button
               type="button"
-              onClick={() => onPageChange(Math.min(serverTotalPages, page + 1))}
-              disabled={page === serverTotalPages}
+              onClick={onNext}
+              disabled={!hasMore}
               aria-label="Next page"
               className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >

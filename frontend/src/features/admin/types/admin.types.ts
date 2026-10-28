@@ -20,10 +20,11 @@ export interface AdminTicketListResponse {
   message: string;
   data: AdminTicketRow[];
   pagination: {
-    page: number;
     limit: number;
-    total: number;
-    totalPages: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+    /** Present only when the request explicitly asks for `includeTotal`. */
+    total?: number;
   };
 }
 

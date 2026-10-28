@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getApiErrorMessage } from "@/lib/api/api-errors";
 import {
   countTickets,
   listTickets,
 } from "@/features/admin/services/admin.service";
-import { TICKET_STATUS_ID } from "@/features/admin/utils/admin-constants";
+import {
+  ADMIN_PAGE_SIZE,
+  DATE_RANGES,
+  TICKET_STATUS_ID,
+  type DateRangeValue,
+} from "@/features/admin/utils/admin-constants";
 import { formatRelative } from "@/features/admin/utils/admin-format";
 import type { Category } from "@/features/categories/types/category.types";
 import { getCategories } from "@/features/categories/services/category.service";
@@ -33,9 +38,12 @@ const EMPTY_COUNTS: QueueCounts = {
   closed: null,
 };
 
+const SEARCH_DEBOUNCE_MS = 500;
+
 /**
- * Server-side ticket queue for the admin support desk: paginated list,
- * summary counts, filter categories, and the currently selected ticket.
+ * Server-side ticket queue for the admin support desk: cursor-paginated list,
+ * server-side search/filters, summary counts, filter categories, and the
+ * currently selected ticket.
  */
 export function useAdminQueue() {
   /* --- list --- */
@@ -44,15 +52,21 @@ export function useAdminQueue() {
   );
   const [listError, setListError] = useState<string | null>(null);
   const [tickets, setTickets] = useState<AdminQueueRow[]>([]);
-  const [serverTotal, setServerTotal] = useState(0);
-  const [serverTotalPages, setServerTotalPages] = useState(1);
-  const [page, setPage] = useState(1);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageCursors, setPageCursors] = useState<(string | null)[]>([null]);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const requestIdRef = useRef(0);
 
   /* --- filters --- */
   const [statusFilter, setStatusFilterRaw] = useState<number | "ALL">("ALL");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
-  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilterRaw] = useState("ALL");
+  const [priorityFilter, setPriorityFilterRaw] = useState("ALL");
+  const [searchTerm, setSearchTermRaw] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [dateRange, setDateRangeRaw] = useState<DateRangeValue>("ALL");
+  const [createdFrom, setCreatedFrom] = useState<string | undefined>(undefined);
 
   /* --- summary counts + categories --- */
   const [counts, setCounts] = useState<QueueCounts>(EMPTY_COUNTS);
@@ -60,6 +74,31 @@ export function useAdminQueue() {
 
   /* --- selection --- */
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const resetPagination = useCallback(() => {
+    setPageIndex(0);
+    setPageCursors([null]);
+    setHasMore(false);
+    setNextCursor(null);
+  }, []);
+
+  /* Called from event handlers (never inside an effect) before a refetch. */
+  const beginListLoad = useCallback(() => {
+    setListState("loading");
+    setListError(null);
+    setTickets([]);
+  }, []);
+
+  /* Debounce the keyword; filters reset the page sequence immediately. */
+  useEffect(() => {
+    const trimmed = searchTerm.trim();
+    const timer = setTimeout(
+      () => setDebouncedSearch(trimmed),
+      SEARCH_DEBOUNCE_MS,
+    );
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   /* Summary counts + categories. Failures degrade to "—" gracefully. */
   useEffect(() => {
@@ -103,21 +142,30 @@ export function useAdminQueue() {
     };
   }, [reloadKey]);
 
-  /* Ticket list: server-side filters + pagination. */
+  /* Ticket list: cursor pagination plus server-side search/filters. */
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
+    const currentRequestId = ++requestIdRef.current;
+    const cursor = pageCursors[pageIndex] ?? null;
 
-    listTickets({
-      page,
-      statusId: statusFilter === "ALL" ? undefined : statusFilter,
-      categoryId: categoryFilter === "ALL" ? undefined : categoryFilter,
-      priority:
-        priorityFilter === "ALL"
-          ? undefined
-          : (priorityFilter as TicketPriority),
-    })
+    listTickets(
+      {
+        cursor,
+        limit: ADMIN_PAGE_SIZE,
+        statusId: statusFilter === "ALL" ? undefined : statusFilter,
+        categoryId: categoryFilter === "ALL" ? undefined : categoryFilter,
+        priority:
+          priorityFilter === "ALL"
+            ? undefined
+            : (priorityFilter as TicketPriority),
+        search: debouncedSearch || undefined,
+        createdFrom,
+      },
+      controller.signal,
+    )
       .then((response) => {
-        if (cancelled) return;
+        if (cancelled || currentRequestId !== requestIdRef.current) return;
         const now = Date.now();
         setTickets(
           response.data.map((row) => ({
@@ -125,15 +173,21 @@ export function useAdminQueue() {
             timeAgo: formatRelative(row.createdAt, now),
           })),
         );
-        setServerTotal(response.pagination.total);
-        setServerTotalPages(Math.max(1, response.pagination.totalPages));
+        setHasMore(response.pagination.hasMore);
+        setNextCursor(response.pagination.nextCursor);
         setListState("success");
         setListError(null);
         // Open the first ticket automatically until the admin picks one.
         setSelectedId((current) => current ?? response.data[0]?.id ?? null);
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
+        if (
+          cancelled ||
+          controller.signal.aborted ||
+          currentRequestId !== requestIdRef.current
+        ) {
+          return;
+        }
         setListError(
           getApiErrorMessage(
             err,
@@ -145,37 +199,114 @@ export function useAdminQueue() {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [page, statusFilter, categoryFilter, priorityFilter, reloadKey]);
+  }, [
+    pageIndex,
+    pageCursors,
+    statusFilter,
+    categoryFilter,
+    priorityFilter,
+    debouncedSearch,
+    createdFrom,
+    reloadKey,
+  ]);
 
-  const setStatusFilter = (next: number | "ALL") => {
-    setStatusFilterRaw(next);
-    setPage(1);
-  };
+  const setStatusFilter = useCallback(
+    (next: number | "ALL") => {
+      beginListLoad();
+      setStatusFilterRaw(next);
+      resetPagination();
+    },
+    [beginListLoad, resetPagination],
+  );
 
-  const retryList = () => {
-    setListState("loading");
-    setListError(null);
+  const setCategoryFilter = useCallback(
+    (next: string) => {
+      beginListLoad();
+      setCategoryFilterRaw(next);
+      resetPagination();
+    },
+    [beginListLoad, resetPagination],
+  );
+
+  const setPriorityFilter = useCallback(
+    (next: string) => {
+      beginListLoad();
+      setPriorityFilterRaw(next);
+      resetPagination();
+    },
+    [beginListLoad, resetPagination],
+  );
+
+  const setSearchTerm = useCallback(
+    (next: string) => {
+      beginListLoad();
+      setSearchTermRaw(next);
+      resetPagination();
+    },
+    [beginListLoad, resetPagination],
+  );
+
+  const setDateRange = useCallback(
+    (next: DateRangeValue) => {
+      beginListLoad();
+      setDateRangeRaw(next);
+      const days = DATE_RANGES.find((range) => range.value === next)?.days;
+      setCreatedFrom(
+        days === null || days === undefined
+          ? undefined
+          : new Date(Date.now() - days * 86_400_000).toISOString(),
+      );
+      resetPagination();
+    },
+    [beginListLoad, resetPagination],
+  );
+
+  const goNext = useCallback(() => {
+    if (!hasMore || !nextCursor) return;
+
+    beginListLoad();
+    const nextIndex = pageIndex + 1;
+    setPageCursors((current) => {
+      const updated = current.slice(0, pageIndex + 1);
+      updated[nextIndex] = nextCursor;
+      return updated;
+    });
+    setPageIndex(nextIndex);
+  }, [beginListLoad, hasMore, nextCursor, pageIndex]);
+
+  const goPrevious = useCallback(() => {
+    if (pageIndex === 0) return;
+
+    beginListLoad();
+    setPageIndex((current) => Math.max(0, current - 1));
+  }, [beginListLoad, pageIndex]);
+
+  const retryList = useCallback(() => {
+    beginListLoad();
     setReloadKey((count) => count + 1);
-  };
+  }, [beginListLoad]);
 
   /** Reloads the queue list and the summary counts, e.g. after a review action. */
   const refreshQueue = useCallback(() => {
+    beginListLoad();
     setReloadKey((count) => count + 1);
-  }, []);
+  }, [beginListLoad]);
 
   const selectTicket = useCallback((ticketId: string) => {
     setSelectedId(ticketId);
   }, []);
 
   return {
-    page,
-    setPage,
+    pageNumber: pageIndex + 1,
+    canGoPrevious: pageIndex > 0,
+    hasMore,
+    goNext,
+    goPrevious,
     listState,
     listError,
     tickets,
-    serverTotal,
-    serverTotalPages,
     retryList,
     refreshQueue,
     statusFilter,
@@ -184,6 +315,10 @@ export function useAdminQueue() {
     setCategoryFilter,
     priorityFilter,
     setPriorityFilter,
+    searchTerm,
+    setSearchTerm,
+    dateRange,
+    setDateRange,
     counts,
     categories,
     selectedId,

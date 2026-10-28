@@ -82,4 +82,10 @@ describe('stripHtmlTags', () => {
   it('collapses whitespace', () => {
     expect(stripHtmlTags('<p>  spaced   out  </p>')).toBe('spaced out');
   });
+
+  it('collapses newlines, tabs, and non-breaking spaces and decodes entities', () => {
+    expect(stripHtmlTags('<p>first\n\tsecond&nbsp;&amp; third</p>')).toBe(
+      'first second & third',
+    );
+  });
 });

@@ -21,6 +21,7 @@ export async function countTickets(options?: {
         sortBy: "createdAt",
         sortOrder: "desc",
         limit: 1,
+        includeTotal: true,
         ...(options?.statusId !== undefined
           ? { statusId: options.statusId }
           : {}),
@@ -28,7 +29,7 @@ export async function countTickets(options?: {
     },
   );
 
-  return data.pagination.total;
+  return data.pagination.total ?? 0;
 }
 
 export async function listPendingReviewTickets(): Promise<AdminTicketListResponse> {
@@ -48,31 +49,41 @@ export async function listPendingReviewTickets(): Promise<AdminTicketListRespons
 }
 
 /**
- * Paginated ticket list for the admin support desk.
+ * Cursor-paginated ticket list for the admin support desk.
  * All filters are applied server-side; the API scopes rows to the caller
  * (admins see every ticket, users only their own).
  */
-export async function listTickets(options?: {
-  page?: number;
-  limit?: number;
-  statusId?: number;
-  categoryId?: string;
-  priority?: TicketPriority;
-}): Promise<AdminTicketListResponse> {
+export async function listTickets(
+  options?: {
+    limit?: number;
+    cursor?: string | null;
+    statusId?: number;
+    categoryId?: string;
+    priority?: TicketPriority;
+    search?: string;
+    createdFrom?: string;
+  },
+  signal?: AbortSignal,
+): Promise<AdminTicketListResponse> {
+  const search = options?.search?.trim();
+
   const { data } = await apiClient.get<AdminTicketListResponse>(
     API_ENDPOINTS.tickets.list,
     {
       params: {
-        page: options?.page ?? 1,
         limit: options?.limit ?? 10,
         sortBy: "createdAt",
         sortOrder: "desc",
+        ...(options?.cursor ? { cursor: options.cursor } : {}),
         ...(options?.statusId !== undefined
           ? { statusId: options.statusId }
           : {}),
         ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
         ...(options?.priority ? { priority: options.priority } : {}),
+        ...(search ? { search } : {}),
+        ...(options?.createdFrom ? { createdFrom: options.createdFrom } : {}),
       },
+      signal,
     },
   );
 

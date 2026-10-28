@@ -1,0 +1,24 @@
+{
+  "source": "localhost/ems_support_test",
+  "scratch": "ems_support_migration_rollback_test",
+  "columnsBeforeRollback": [
+    "id",
+    "user_id",
+    "created_at",
+    "description_preview"
+  ],
+  "indexesBeforeRollback": [
+    "PRIMARY",
+    "tickets_user_id_created_at_idx",
+    "tickets_user_id_created_at_idx"
+  ],
+  "columnsAfterRollback": [
+    "id",
+    "user_id",
+    "created_at"
+  ],
+  "indexesAfterRollback": [
+    "PRIMARY"
+  ],
+  "rollbackVerified": true
+}

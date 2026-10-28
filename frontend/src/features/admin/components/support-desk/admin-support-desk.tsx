@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/toaster";
 import { useAdminQueue } from "../../hooks/use-admin-queue";
 import { useAdminTicketDetail } from "../../hooks/use-ticket-detail";
 import { useTicketReviewActions } from "../../hooks/use-ticket-review-actions";
-import { ADMIN_PAGE_SIZE, DATE_RANGES, QUEUE_TABS, type DateRangeValue } from "../../utils/admin-constants";
+import { QUEUE_TABS } from "../../utils/admin-constants";
 import type { AdminDetailTab, AdminTicketRow } from "../../types/admin.types";
 import { SLA_STATUS_ON_TRACK } from "../../utils/admin-constants";
 import { formatSlaRemaining } from "../../utils/admin-format";
@@ -25,13 +25,14 @@ export function AdminSupportDesk() {
   const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   const {
-    page,
-    setPage,
+    pageNumber,
+    canGoPrevious,
+    hasMore,
+    goNext,
+    goPrevious,
     listState,
     listError,
     tickets,
-    serverTotal,
-    serverTotalPages,
     retryList,
     refreshQueue,
     statusFilter,
@@ -40,23 +41,21 @@ export function AdminSupportDesk() {
     setCategoryFilter,
     priorityFilter,
     setPriorityFilter,
+    searchTerm,
+    setSearchTerm,
+    dateRange,
+    setDateRange,
     counts,
     categories,
     selectedId,
     selectTicket,
   } = useAdminQueue();
 
-  // Client-side refinements over the fetched page (server owns the rest).
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateRangeValue, setDateRangeValue] = useState<DateRangeValue>("ALL");
-  const [dateCutoff, setDateCutoff] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(true);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [pageMenuOpen, setPageMenuOpen] = useState(false);
   const [detailMenuOpen, setDetailMenuOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<AdminDetailTab>("details");
-
-  const isClientFiltered = searchTerm.trim() !== "" || dateCutoff !== null;
 
   /* --- detail panel wiring --- */
   const [detailReloadKey, setDetailReloadKey] = useState(0);
@@ -141,29 +140,6 @@ export function AdminSupportDesk() {
     });
   };
 
-  const visibleTickets = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return tickets.filter((ticket) => {
-      if (
-        dateCutoff !== null &&
-        new Date(ticket.createdAt).getTime() < dateCutoff
-      ) {
-        return false;
-      }
-      if (term) {
-        const haystack = [
-          ticket.ticketNumber,
-          ticket.subject,
-          ticket.category?.name ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(term)) return false;
-      }
-      return true;
-    });
-  }, [tickets, searchTerm, dateCutoff]);
-
   const handleSelectTicket = (ticket: AdminTicketRow) => {
     selectTicket(ticket.id);
     setSelectedTab("details");
@@ -173,17 +149,6 @@ export function AdminSupportDesk() {
 
   const handleStatusTab = (statusId: number | undefined) => {
     setStatusFilter(statusId ?? "ALL");
-  };
-
-  const handleDateRangeChange = (value: DateRangeValue) => {
-    const days = DATE_RANGES.find((range) => range.value === value)?.days;
-    setDateRangeValue(value);
-    // Freeze the cutoff at selection time, exactly like the original form.
-    setDateCutoff(
-      days === null || days === undefined
-        ? null
-        : Date.now() - days * 86_400_000,
-    );
   };
 
   return (
@@ -353,33 +318,25 @@ export function AdminSupportDesk() {
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
           categoryFilter={categoryFilter}
-          onCategoryFilterChange={(value) => {
-            setCategoryFilter(value);
-            setPage(1);
-          }}
+          onCategoryFilterChange={setCategoryFilter}
           priorityFilter={priorityFilter}
-          onPriorityFilterChange={(value) => {
-            setPriorityFilter(value);
-            setPage(1);
-          }}
-          dateCutoff={dateRangeValue}
-          onDateCutoffChange={handleDateRangeChange}
+          onPriorityFilterChange={setPriorityFilter}
+          dateCutoff={dateRange}
+          onDateCutoffChange={setDateRange}
           categories={categories}
           listState={listState}
           listError={listError}
           retryList={retryList}
-          tickets={visibleTickets}
+          tickets={tickets}
           selectedId={selectedId}
           onSelect={handleSelectTicket}
           checkedIds={checkedIds}
           onCheckedIdsChange={setCheckedIds}
-          isClientFiltered={isClientFiltered}
-          page={page}
-          onPageChange={setPage}
-          serverTotal={serverTotal}
-          serverTotalPages={serverTotalPages}
-          rangeStart={serverTotal === 0 ? 0 : (page - 1) * ADMIN_PAGE_SIZE + 1}
-          rangeEnd={Math.min(page * ADMIN_PAGE_SIZE, serverTotal)}
+          pageNumber={pageNumber}
+          canGoPrevious={canGoPrevious}
+          hasMore={hasMore}
+          onPrevious={goPrevious}
+          onNext={goNext}
         />
 
         {/* ------------------------------ Detail panel ------------------------------ */}

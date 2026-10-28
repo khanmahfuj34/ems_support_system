@@ -1,10 +1,10 @@
-# Frontend Agent Guide — EMS Support System
+﻿# Frontend Agent Guide â€” EMS Support System
 
 ## Mandatory Agent Rules
 
 1. Read this file and applicable parent/nested `AGENTS.md` files before starting; follow their instructions.
 2. Inspect relevant code and existing patterns before editing. Keep changes scoped to the requested task.
-3. After meaningful work, append a concise 1–3-bullet summary under **Task Notes** below. Combine related work, avoid duplicates, and keep notes minimal.
+3. After meaningful work, append a concise 1â€“3-bullet summary under **Task Notes** below. Combine related work, avoid duplicates, and keep notes minimal.
 4. Preserve existing instructions and the Next.js-generated block below. Do not rewrite unrelated UI, routes, auth, or behavior.
 5. Never assume a feature is implemented from the PRD alone; verify the actual code/API first. Do not invent endpoints or silently mock backend data.
 6. Run relevant checks when applicable (at minimum `npm run lint`; also `npm run build` for routing/build/config or broad changes). Report actual results and blockers.
@@ -87,21 +87,15 @@ Use the lockfile/package manager already present. Don't update dependencies sole
 
 ## Task Notes
 
-- Added route/feature/API ownership guidance, auth behavior, and verified implementation boundaries for future agents.
-- Added the notifications feature on the already-existing placeholder folders: `notification.service.ts` (real `/api/v1/notifications` endpoints), `use-notifications.ts` hook (pagination, unread count, mark-read/mark-all-read with toasts, silent `refresh`, and a `supportdesk:notifications-updated` window event), `notification-list.tsx`, and the `/notifications` page; ticket notifications link to `/support-desk/:id`. Timestamps come from the API, `admin-format`/`pagination` helpers are reused for relative time and page items.
-- Rebuilt `/admin/dashboard` as an Admin Overview dashboard (reference `design.md/AdminDeshboard/image.png`) and wired it to real data: `features/admin/components/dashboard/` holds `admin-overview-dashboard.tsx` (now a client component using the new `hooks/use-admin-overview.ts`), `overview-stat-card.tsx`, `ticket-status-overview.tsx` (SVG donut), `ticket-trend-panel.tsx`, `needs-attention-panel.tsx`, and `recent-tickets-panel.tsx` (reuses the shared `StatusChip`). KPIs/donut counts come from the verified `GET /api/v1/tickets` contract via the existing admin service (`countTickets` per-status `pagination.total` server-side counts; `listTickets` gained an optional `limit`): Needs Attention = real pending-review tickets, Recent Tickets = latest tickets with status/priority; panel rows use an explicitly placed responsive grid (separate tracks for ID/subject/chip/timestamp with `min-w-0` truncation) to prevent long-subject overlap at narrow widths. Loading skeletons, per-KPI degrade to `—`, error card with retry, silent refresh button, and empty states are implemented; old dashboard files deleted (Support Desk console untouched). No backend historical/previous-period trend endpoint exists, so the trend chart and KPI pills stay in explicit empty states.
-- Integrated the workspace bell with real data: `notification-bell.tsx`/`notification-dropdown.tsx` reuse the notification hook for the live unread badge, compact recent list, mark-read/mark-all-read, ticket navigation, refresh on open, and 60s polling (timers/listeners cleaned up); the admin sidebar "Notifications" link now points to `/notifications`.
-- Keep only recent meaningful frontend changes here (1–3 bullets); merge related updates and remove stale/duplicate summaries.
-- Integrated global ticket search: `features/search/` provides `search.types.ts`, `search.service.ts` (using `GET /api/v1/tickets?search=...`), and `use-global-ticket-search.ts` (500ms debounce, AbortController cancellation, stale response id guards). Replaced the static header search in `WorkspaceShell` with `GlobalSearch` featuring an accessible combobox, status chips, safe text highlighting, keyboard navigation, click-outside dismissal, and direct navigation to `/support-desk/:id`.
-- Rebuilt `/admin/dashboard` as an Admin Overview dashboard (reference `design.md/AdminDeshboard/image.png`) with real data: overview stat cards, status donut, needs attention queue, and recent tickets panel with shared `StatusChip`.
-- Added notifications feature on `/notifications` with live unread badge on `NotificationBell` in `WorkspaceShell`.
-
+- Ticket search uses the cursor-paginated API with server-side admin filters; global search shows the backend's plain-text description preview.
+- Notifications use the shared notification hook and API for unread state, paging, mark-read actions, and ticket navigation.
+- The admin overview dashboard uses live ticket API data with loading, empty, retry, and narrow-layout states.
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+This version has breaking changes â€” APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+This block is written and re-added by `next dev` â€” verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->

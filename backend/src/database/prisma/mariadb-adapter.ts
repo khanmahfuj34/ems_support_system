@@ -84,6 +84,36 @@ export function createMariaDbAdapter() {
   console.info(
     `[database] adapter configured host=${url.hostname} tls=${tlsEnabled ? 'enabled' : 'disabled'}`,
   );
+  function readPositiveIntegerEnvironmentVariable(
+  name: string,
+  defaultValue: number,
+  min: number,
+  max: number,
+): number {
+  const value = process.env[name]?.trim();
+
+  if (value === undefined || value === '') {
+    return defaultValue;
+  }
+
+  const parsed = Number(value);
+
+  if (
+    !Number.isSafeInteger(parsed) ||
+    parsed < min ||
+    parsed > max
+  ) {
+    throw new Error(`${name} must be an integer from ${min} to ${max}`);
+  }
+
+  return parsed;
+}
+const connectionLimit = readPositiveIntegerEnvironmentVariable(
+  'DATABASE_CONNECTION_LIMIT',
+  20,
+  1,
+  100,
+);
 
   return new PrismaMariaDb({
     host: url.hostname,
@@ -103,6 +133,7 @@ export function createMariaDbAdapter() {
     ...(allowPublicKeyRetrieval && !cachingRsaPublicKey
       ? { allowPublicKeyRetrieval: true }
       : {}),
-    connectionLimit: 5,
+    connectionLimit,
+    acquireTimeout: 3000,
   });
 }

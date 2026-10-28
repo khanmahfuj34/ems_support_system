@@ -1,8 +1,9 @@
-
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   Matches,
@@ -20,14 +21,17 @@ export class ListTicketsQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
   @Max(100)
-  limit = 10;
+  limit?: number = 10;
+
+  /**
+   * Opaque keyset cursor returned as `pagination.nextCursor`. Offset/page
+   * navigation is intentionally not supported.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  cursor?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -50,11 +54,19 @@ export class ListTicketsQueryDto {
 
   @IsOptional()
   @IsIn(SORT_FIELDS)
-  sortBy: (typeof SORT_FIELDS)[number] = 'createdAt';
+  sortBy?: (typeof SORT_FIELDS)[number] = 'createdAt';
 
   @IsOptional()
   @IsIn(SORT_ORDERS)
-  sortOrder: (typeof SORT_ORDERS)[number] = 'desc';
+  sortOrder?: (typeof SORT_ORDERS)[number] = 'desc';
+
+  @IsOptional()
+  @IsISO8601()
+  createdFrom?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  createdTo?: string;
 
   @IsOptional()
   @Transform(({ value }) => {
@@ -67,4 +79,17 @@ export class ListTicketsQueryDto {
   @IsString()
   @MaxLength(100)
   search?: string;
+
+  /**
+   * Only count-oriented callers (dashboard KPIs) need the total. Normal
+   * paginated search requests skip the expensive count query.
+   */
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  includeTotal?: boolean;
 }

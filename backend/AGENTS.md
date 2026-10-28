@@ -1,10 +1,10 @@
-# Backend Agent Guide — EMS Support System
+﻿# Backend Agent Guide â€” EMS Support System
 
 ## Mandatory Agent Rules
 
 1. Read this file and applicable parent/nested `AGENTS.md` files before starting; follow their instructions.
 2. Inspect the relevant controller, service, DTO, guard, Prisma schema, and tests before changing behavior.
-3. After meaningful work, add a concise 1–3-bullet summary under **Task Notes**. Merge related work, avoid duplicates, and keep notes minimal.
+3. After meaningful work, add a concise 1â€“3-bullet summary under **Task Notes**. Merge related work, avoid duplicates, and keep notes minimal.
 4. Preserve existing architecture and unrelated behavior. A requirement in a PRD is not proof that the feature is implemented.
 5. Validate inputs through DTOs and the global validation pipe. Enforce authorization/ownership in backend code, never only in the UI.
 6. For Prisma 7 work, follow repo guidance in `.agents/skills/` and the existing MariaDB adapter. Never reset, destructively migrate, or seed a real DB without explicit approval.
@@ -54,36 +54,36 @@ Source of truth: `prisma/schema.prisma`.
 
 All paths are relative to the backend host and include `/api/v1`.
 
-### Auth — `src/module/auth/`
+### Auth â€” `src/module/auth/`
 
 - `POST /api/v1/auth/register`: public registration; server forces role USER and hashes password with bcrypt.
 - `POST /api/v1/auth/login`: checks credentials and active account, updates `lastLoginAt`, returns a Bearer JWT with 15-minute expiry and user summary.
 - `GET /api/v1/auth/me`: JWT-protected current profile.
 
-### Tickets — `src/module/tickets/` (JWT required)
+### Tickets â€” `src/module/tickets/` (JWT required)
 
 - `POST /api/v1/tickets`: creates a ticket for the authenticated user. It checks active account/category/subcategory, requires an active SLA policy, sanitizes rich-text description, generates a unique ticket number, sets PENDING_REVIEW and writes initial status history/activity in a Prisma transaction.
 - `GET /api/v1/tickets`: paginated list with status/priority/category and sort filters. Users are scoped to own tickets; ADMIN can see all.
 - `GET /api/v1/tickets/:id`: ticket details with status history, comments, attachment metadata and SLA/category data. Users are scoped to own tickets. Internal notes are deliberately excluded.
 
-### Categories — `src/module/categories/` (JWT required)
+### Categories â€” `src/module/categories/` (JWT required)
 
 - `GET /api/v1/categories`: active categories.
 - `GET /api/v1/categories/:categoryId/subcategories`: active subcategories for an active category.
 - No category/subcategory admin CRUD endpoints were found in the current controller.
 
-### Comments — `src/module/comments/` (JWT required)
+### Comments â€” `src/module/comments/` (JWT required)
 
 - `GET /api/v1/tickets/:ticketId/comments`: chronological conversation after ownership/admin access check.
 - `POST /api/v1/tickets/:ticketId/comments`: inserts a comment and COMMENT_ADDED activity log transactionally.
 
-### Admin — `src/module/admin/` (JWT + ADMIN role required)
+### Admin â€” `src/module/admin/` (JWT + ADMIN role required)
 
 - `GET /api/v1/admin/test`: protected authorization test.
 - `PATCH /api/v1/admin/tickets/:id/accept`: accepts only tickets in PENDING_REVIEW; updates status/history/activity transactionally.
 - `PATCH /api/v1/admin/tickets/:id/reject`: requires a non-empty reason and records status/history/activity transactionally.
 
-### Uploads — `src/module/uploads/` (JWT required)
+### Uploads â€” `src/module/uploads/` (JWT required)
 
 - `POST /api/v1/uploads`: multipart fields `file` and `ticketId`; controller allows one file up to 5 MB. Service currently allowlists JPG, PNG, WEBP, PDF; checks ticket existence and ownership for regular users; uploads using authenticated Cloudinary storage and records metadata in MySQL. If metadata persistence fails, it attempts to delete the orphaned Cloudinary upload.
 - The service notes that MIME type alone is insufficient and signature inspection remains a hardening opportunity. Do not document signature validation as already implemented.
@@ -98,7 +98,7 @@ All paths are relative to the backend host and include `/api/v1`.
 - Do not return password hashes, private internal notes, or secret configuration. Convert BigInt IDs/file sizes before JSON output.
 - Preserve conditional status updates and transactions for review actions to avoid duplicate concurrent decisions.
 
-## Current Gaps — Do Not Assume Implemented
+## Current Gaps â€” Do Not Assume Implemented
 
 - `src/module/users/users.module.ts` and `src/module/departments/departments.module.ts` are empty placeholder modules.
 - The admin controller currently supports review accept/reject only; the full PRD lifecycle (status changes, resolve/close/reopen, official-priority override, internal notes, SLA admin) is not exposed there at present.
@@ -123,10 +123,8 @@ Use the configured package manager and existing lockfile. Review migration SQL b
 
 ## Task Notes
 
-- Keep only recent meaningful backend changes here (1–3 bullets); merge related updates and remove stale/duplicate summaries.
-- Added optional `search` query parameter to `ListTicketsQueryDto` and extended `TicketsService.list()` with partial matching across `subject`, `description`, `ticketNumber`, `category`, `subCategory`, numeric `id`, and admin-only requester `user.name`/`user.email`, preserving strict regular user ownership isolation and combining with existing filters.
-- Added admin ticket lifecycle management with validated transitions, required reasons/resolution summaries, and transactional status history/activity logging; expanded specs for review accept/reject, not-found, validation guards, reopen SLA breach/on-track, and concurrency conflicts.
-- Integrated requester notifications: `NotificationsModule` is registered in `AppModule`, imported by `AdminModule`, and `AdminService` creates `TICKET_ACCEPTED`/`TICKET_REJECTED`/`TICKET_STATUS_CHANGED` notifications via `NotificationsService.createTicketNotification(tx, ...)` inside the ticket transactions, so notifications commit/roll back with status updates.
-- Notification-focused specs (`notifications.controller.spec.ts`, `notifications.service.spec.ts`, and rollback cases in `admin.service.spec.ts`) cover JWT-guarded routes, user scoping, unread filtering, pagination/unread count, invalid IDs, ownership 404s, accept/reject/lifecycle notification payloads, and aborting the ticket transaction when the notification write fails.
-- Unit-test runner (`vitest.config.ts`) sets `test.fileParallelism: false` so `npm test` runs reliably without parallel test workers; tsconfig path resolution uses Vite's native `resolve: { tsconfigPaths: true }` (Vite 8+), not the removed `vite-tsconfig-paths` package. Do not raise hook timeouts to mask parallelism-related `beforeEach` flakiness.
-- Configured backend default listening port to `PORT=5000` in `.env` / `.env.example` and updated frontend proxy (`next.config.ts`, `.env.local`) to avoid port `3000` collision with Next.js dev server.
+- Ticket listing uses keyset cursors scoped to search, filters, and ownership. This pass adds 5-second MySQL search/count timeouts, a five-search process cap, 503/429 mapping, plain-text list previews, and a `(user_id, created_at)` index. The 1M-row baseline and EXPLAIN-only FULLTEXT spike are in `performance/evidence/`; broad FULLTEXT discovery exceeded five seconds, so application FULLTEXT and cursor changes remain gated.
+- Admin ticket lifecycle and requester-notification writes share transactions with status/history/activity updates; focused specs cover transitions and rollback.
+- Performance fixtures are opt-in and restricted to local test/perf databases. The seed supports 1M varied tickets with skewed ownership; preview backfill is batched and is not wired into app startup.
+- Ticket search now lives in `src/module/search/`; `TicketsService` delegates non-empty searches and both roles use unified matching (subject/description, ticket-number prefix, lookup IDs, requester prefix) with a 5,000-row scan budget, a three-character text minimum with exact short identifiers, `!` wildcard escaping, and a five-search process cap. Search responses omit `pagination.total`; non-search `includeTotal` still runs through `SearchExecutor`.
+- Search verification: `npm run build`, `npm run lint`, and `npm test` (102 tests) pass. Local `ems_support_test` EXPLAIN checks use `tickets_created_at_idx` for admin scans and `tickets_user_id_created_at_idx` for owner searches; `ESCAPE '!'` wildcard query runs cleanly. Default `npm run test:e2e` fails the `DATABASE_SSL=false` guard under `NODE_ENV=test`; it passes with `NODE_ENV=development`.

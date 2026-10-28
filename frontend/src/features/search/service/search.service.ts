@@ -22,10 +22,9 @@ export async function searchTickets(
       message: "Search query requires at least 3 characters",
       data: [],
       pagination: {
-        page: 1,
-        limit: params.limit ?? 8,
-        total: 0,
-        totalPages: 0,
+        limit: params.limit ?? 10,
+        hasMore: false,
+        nextCursor: null,
       },
     };
   }
@@ -35,8 +34,8 @@ export async function searchTickets(
     {
       params: {
         search: trimmed,
-        limit: params.limit ?? 8,
-        page: params.page ?? 1,
+        limit: params.limit ?? 10,
+        ...(params.cursor ? { cursor: params.cursor } : {}),
         ...(params.statusId !== undefined ? { statusId: params.statusId } : {}),
         ...(params.priority ? { priority: params.priority } : {}),
         ...(params.categoryId ? { categoryId: params.categoryId } : {}),

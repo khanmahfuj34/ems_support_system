@@ -14,7 +14,7 @@ export interface SearchTicketItem {
   id: string;
   ticketNumber: string;
   subject: string;
-  description?: string;
+  descriptionPreview?: string;
   userId?: string;
   statusId: number;
   slaStatus?: number;
@@ -29,17 +29,17 @@ export interface SearchTicketItem {
 export interface SearchTicketsParams {
   search: string;
   limit?: number;
-  page?: number;
+  cursor?: string | null;
   statusId?: number;
   priority?: TicketPriority;
   categoryId?: string;
 }
 
 export interface SearchTicketsPagination {
-  page: number;
   limit: number;
-  total: number;
-  totalPages: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+  total?: number;
 }
 
 export interface SearchTicketsResponse {

@@ -1,0 +1,9 @@
+{
+  "candidate": "existing indexes",
+  "userId": "99332",
+  "explainAnalyze": [
+    {
+      "EXPLAIN": "-> Limit: 21 row(s)  (cost=507 rows=21) (actual time=40.5..41.3 rows=21 loops=1)\n    -> Filter: ((t.`subject` like '%login%') or (t.`description` like '%login%') or (t.ticket_number like '%login%') or (c.`name` like '%login%') or (sc.`name` like '%login%') or (u.`name` like '%login%') or (u.email like '%login%'))  (cost=507 rows=242) (actual time=40.5..41.3 rows=21 loops=1)\n        -> Nested loop left join  (cost=507 rows=242) (actual time=40.5..41.2 rows=41 loops=1)\n            -> Nested loop left join  (cost=422 rows=242) (actual time=40.5..41.2 rows=41 loops=1)\n                -> Nested loop left join  (cost=337 rows=242) (actual time=40.5..41.2 rows=41 loops=1)\n                    -> Sort row IDs: t.created_at DESC, t.id DESC  (cost=252 rows=242) (actual time=40.5..41.1 rows=41 loops=1)\n                        -> Index lookup on t using tickets_user_id_idx (user_id = 99332)  (cost=252 rows=242) (actual time=0.264..40.2 rows=242 loops=1)\n                    -> Single-row index lookup on c using PRIMARY (id = t.category_id)  (cost=0.25 rows=1) (actual time=739e-6..756e-6 rows=1 loops=41)\n                -> Single-row index lookup on sc using PRIMARY (id = t.sub_category_id)  (cost=0.25 rows=1) (actual time=729e-6..746e-6 rows=1 loops=41)\n            -> Single-row index lookup on u using PRIMARY (id = t.user_id)  (cost=0.25 rows=1) (actual time=229e-6..244e-6 rows=1 loops=41)\n"
+    }
+  ]
+}

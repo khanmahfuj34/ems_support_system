@@ -4,6 +4,8 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Folder,
   Loader2,
@@ -52,18 +54,18 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
 }
 
 /**
- * Extracts a concise plain-text snippet from rich-text HTML description.
+ * Keeps the API-provided plain-text preview concise for the search result.
  */
-function getExcerpt(htmlContent?: string, maxLength = 80): string | null {
-  if (!htmlContent) return null;
-  const stripped = htmlContent
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!stripped) return null;
-  return stripped.length > maxLength
-    ? `${stripped.slice(0, maxLength)}…`
-    : stripped;
+function getExcerpt(preview?: string, maxLength = 80): string | null {
+  if (!preview) return null;
+  const plainText = preview.replace(/\s+/g, " ").trim();
+  if (!plainText) return null;
+  if (plainText.length <= maxLength) return plainText;
+
+  const boundary = plainText.lastIndexOf(" ", maxLength);
+  return boundary > 0
+    ? `${plainText.slice(0, boundary)}…`
+    : `${plainText.slice(0, maxLength)}…`;
 }
 
 export function GlobalSearch({
@@ -84,6 +86,11 @@ export function GlobalSearch({
     isOpen,
     setIsOpen,
     clear,
+    pageNumber,
+    hasMore,
+    canGoPrevious,
+    goNext,
+    goPrevious,
   } = useGlobalTicketSearch(500);
 
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -239,7 +246,7 @@ export function GlobalSearch({
                 : error
                   ? "Search failed"
                   : results.length > 0
-                    ? `Found ${results.length} ticket${results.length === 1 ? "" : "s"}`
+                    ? `Page ${pageNumber} · ${results.length} ticket${results.length === 1 ? "" : "s"}`
                     : "No matching tickets"}
             </span>
             <span className="hidden sm:inline text-gray-400 text-[10px]">
@@ -275,7 +282,7 @@ export function GlobalSearch({
 
             {results.map((ticket, index) => {
               const isActive = activeIndex === index;
-              const excerpt = getExcerpt(ticket.description);
+              const excerpt = getExcerpt(ticket.descriptionPreview);
 
               return (
                 <div
@@ -349,6 +356,35 @@ export function GlobalSearch({
               );
             })}
           </div>
+
+          {!loading &&
+            !error &&
+            query.trim().length >= 3 &&
+            (results.length > 0 || pageNumber > 1) && (
+              <div className="border-t border-gray-100 px-3.5 py-2 flex items-center justify-between gap-3 text-[11px] text-gray-500 bg-gray-50/60">
+                <span>Page {pageNumber}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={goPrevious}
+                    disabled={!canGoPrevious}
+                    aria-label="Previous results page"
+                    className="inline-flex size-6 items-center justify-center rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={!hasMore}
+                    aria-label="Next results page"
+                    className="inline-flex size-6 items-center justify-center rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
         </div>
       )}
     </div>

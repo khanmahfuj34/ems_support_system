@@ -9,12 +9,27 @@ import { Prisma, Priority } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { UserRoleId } from '../../common/decorators/roles.decorator.js';
+import { SearchExecutor } from '../search/common/search-executor.service.js';
+import { TicketSearchService } from '../search/ticket-search/ticket-search.service.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto.js';
+import {
+  buildCursorFingerprint,
+  buildCursorWhere,
+  decodeTicketCursor,
+  encodeTicketCursor,
+  type TicketCursorScope,
+} from './utils/ticket-cursor.js';
 import {
   sanitizeTicketDescription,
   stripHtmlTags,
 } from './utils/sanitize-html.js';
+import { buildTicketDescriptionTextFields } from './utils/ticket-description-text.js';
+import {
+  serializeTicketListRow,
+  TICKET_LIST_SELECT,
+  type TicketListResult,
+} from './utils/ticket-list.mapper.js';
 
 const TICKET_STATUS = {
   PENDING_REVIEW: 2,
@@ -29,9 +44,23 @@ type TicketListUser = {
   roleId: number;
 };
 
+type TicketListClient = Pick<Prisma.TransactionClient, 'ticket'>;
+
+function buildWhere(
+  conditions: Prisma.TicketWhereInput[],
+): Prisma.TicketWhereInput {
+  if (conditions.length === 0) return {};
+  if (conditions.length === 1) return conditions[0];
+  return { AND: conditions };
+}
+
 @Injectable()
 export class TicketsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ticketSearch: TicketSearchService,
+    private readonly executor: SearchExecutor,
+  ) {}
 
   /**
    * Creates a ticket and its initial history records atomically.
@@ -55,6 +84,7 @@ export class TicketsService {
 
     // PRD "Rich Text Security": rich text must be sanitized before storage.
     const description = sanitizeTicketDescription(dto.description.trim());
+    const descriptionFields = buildTicketDescriptionTextFields(description);
 
     if (!subject || !stripHtmlTags(description)) {
       throw new BadRequestException(
@@ -156,6 +186,7 @@ export class TicketsService {
           slaPolicyId: slaPolicy.id,
           subject,
           description,
+          descriptionPreview: descriptionFields.preview,
           userPriority: priority,
           adminPriority: null,
           statusId: TICKET_STATUS.PENDING_REVIEW,
@@ -168,6 +199,7 @@ export class TicketsService {
           ticketNumber: true,
           subject: true,
           description: true,
+          descriptionPreview: true,
           userPriority: true,
           statusId: true,
           slaStatus: true,
@@ -235,35 +267,47 @@ export class TicketsService {
     });
   }
 
-  async list(user: TicketListUser, query: ListTicketsQueryDto) {
+  async list(
+    user: TicketListUser,
+    query: ListTicketsQueryDto,
+  ): Promise<TicketListResult> {
     if (!/^[1-9]\d*$/.test(user.id)) {
       throw new UnauthorizedException('Invalid authenticated user');
     }
 
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    const skip = (page - 1) * limit;
+    const searchTerm = query.search?.trim();
+    if (searchTerm) {
+      return this.ticketSearch.search(user, query);
+    }
 
-    const where: Prisma.TicketWhereInput = {};
+    const limit = query.limit ?? 10;
+    const sortBy = query.sortBy ?? 'createdAt';
+    const sortOrder = query.sortOrder ?? 'desc';
+    const isAdmin = Number(user.roleId) === UserRoleId.ADMIN;
+
+    const createdFrom = query.createdFrom
+      ? new Date(query.createdFrom)
+      : undefined;
+    const createdTo = query.createdTo ? new Date(query.createdTo) : undefined;
+
+    const baseConditions: Prisma.TicketWhereInput[] = [];
 
     // Regular users can only access their own tickets.
-    if (user.roleId !== UserRoleId.ADMIN) {
-      where.userId = BigInt(user.id);
+    if (!isAdmin) {
+      baseConditions.push({ userId: BigInt(user.id) });
     }
 
     if (query.statusId !== undefined) {
-      where.statusId = query.statusId;
+      baseConditions.push({ statusId: query.statusId });
     }
 
     if (query.categoryId !== undefined) {
-      where.categoryId = BigInt(query.categoryId);
+      baseConditions.push({ categoryId: BigInt(query.categoryId) });
     }
-
-    const andConditions: Prisma.TicketWhereInput[] = [];
 
     if (query.priority !== undefined) {
       // Filter by the effective priority selected by the admin, if present.
-      andConditions.push({
+      baseConditions.push({
         OR: [
           { adminPriority: query.priority },
           {
@@ -274,148 +318,95 @@ export class TicketsService {
       });
     }
 
-    const searchTerm = query.search?.trim();
-    if (searchTerm) {
-      const searchConditions: Prisma.TicketWhereInput[] = [
-        { subject: { contains: searchTerm } },
-        { description: { contains: searchTerm } },
-        { ticketNumber: { contains: searchTerm } },
-        { category: { name: { contains: searchTerm } } },
-        { subCategory: { name: { contains: searchTerm } } },
-      ];
-
-      // Support searching by numeric ticket ID if the search term is a valid positive integer
-      if (/^[1-9]\d{0,18}$/.test(searchTerm)) {
-        searchConditions.push({ id: BigInt(searchTerm) });
-      }
-
-      // Requester name and email search are available only for administrators
-      if (Number(user.roleId) === UserRoleId.ADMIN) {
-        searchConditions.push(
-          { user: { name: { contains: searchTerm } } },
-          { user: { email: { contains: searchTerm } } },
-        );
-      }
-
-      andConditions.push({ OR: searchConditions });
+    if (createdFrom || createdTo) {
+      baseConditions.push({
+        createdAt: {
+          ...(createdFrom ? { gte: createdFrom } : {}),
+          ...(createdTo ? { lte: createdTo } : {}),
+        },
+      });
     }
 
-    if (andConditions.length === 1) {
-      Object.assign(where, andConditions[0]);
-    } else if (andConditions.length > 1) {
-      where.AND = andConditions;
+    const cursorScope: TicketCursorScope = {
+      sortBy,
+      sortOrder,
+      statusId: query.statusId,
+      priority: query.priority,
+      categoryId: query.categoryId,
+      createdFrom: createdFrom?.toISOString(),
+      createdTo: createdTo?.toISOString(),
+      userId: !isAdmin ? user.id : undefined,
+      roleId: user.roleId,
+    };
+    const cursorFingerprint = buildCursorFingerprint(cursorScope);
+    const cursor = query.cursor
+      ? decodeTicketCursor(query.cursor, cursorScope)
+      : undefined;
+
+    const conditions = [...baseConditions];
+    if (cursor) {
+      conditions.push(buildCursorWhere(sortBy, sortOrder, cursor));
     }
 
-    const orderBy: Prisma.TicketOrderByWithRelationInput = {
-      [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+    const where = buildWhere(conditions);
+
+    const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
+      { [sortBy]: sortOrder },
+      { id: sortOrder },
+    ];
+
+    const readPage = async (client: TicketListClient) => {
+      const findManyPromise = client.ticket.findMany({
+        where,
+        orderBy,
+        // Read one extra row so hasMore never requires a count query.
+        take: limit + 1,
+        select: TICKET_LIST_SELECT,
+      });
+
+      let rows: Awaited<typeof findManyPromise>;
+      let total: number | undefined;
+
+      if (query.includeTotal) {
+        [rows, total] = await Promise.all([
+          findManyPromise,
+          client.ticket.count({ where }),
+        ]);
+      } else {
+        rows = await findManyPromise;
+      }
+
+      const hasMore = rows.length > limit;
+      const pageRows = hasMore ? rows.slice(0, limit) : rows;
+      const lastRow = pageRows[pageRows.length - 1];
+      const nextCursor =
+        hasMore && lastRow
+          ? encodeTicketCursor({
+              sortBy,
+              sortOrder,
+              value: lastRow[sortBy],
+              id: lastRow.id,
+              fingerprint: cursorFingerprint,
+            })
+          : null;
+
+      return { rows: pageRows, total, hasMore, nextCursor };
     };
 
-    const [tickets, total] = await this.prisma.$transaction([
-      this.prisma.ticket.findMany({
-        where,
-        orderBy: [
-          orderBy,
-          { id: 'desc' },
-        ],
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          ticketNumber: true,
-          subject: true,
-          description: true,
-          userId: true,
-          categoryId: true,
-          subCategoryId: true,
-          userPriority: true,
-          adminPriority: true,
-          statusId: true,
-          slaStatus: true,
-          firstResponseAt: true,
-          firstResponseDueAt: true,
-          resolutionDueAt: true,
-          resolvedAt: true,
-          closedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          category: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          subCategory: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          status: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          slaPolicy: {
-            select: {
-              id: true,
-              priority: true,
-              firstResponseMinutes: true,
-              resolutionMinutes: true,
-            },
-          },
-        },
-      }),
-      this.prisma.ticket.count({ where }),
-    ]);
+    const result = query.includeTotal
+      ? await this.executor.run(readPage)
+      : await readPage(this.prisma);
 
-    const data = tickets.map((ticket: {
-      id: bigint;
-      userId: bigint;
-      categoryId: bigint;
-      subCategoryId: bigint | null;
-      category: { id: bigint; name: string } | null;
-      subCategory: { id: bigint; name: string } | null;
-      slaPolicy: {
-        id: bigint;
-        priority: Priority;
-        firstResponseMinutes: number;
-        resolutionMinutes: number;
-      } | null;
-    }) => ({
-      ...ticket,
-      id: ticket.id.toString(),
-      userId: ticket.userId.toString(),
-      categoryId: ticket.categoryId.toString(),
-      subCategoryId: ticket.subCategoryId?.toString() ?? null,
-      category: ticket.category
-        ? {
-            ...ticket.category,
-            id: ticket.category.id.toString(),
-          }
-        : null,
-      subCategory: ticket.subCategory
-        ? {
-            ...ticket.subCategory,
-            id: ticket.subCategory.id.toString(),
-          }
-        : null,
-      slaPolicy: ticket.slaPolicy
-        ? {
-            ...ticket.slaPolicy,
-            id: ticket.slaPolicy.id.toString(),
-          }
-        : null,
-    }));
+    const { rows, total, hasMore, nextCursor } = result;
 
     return {
       message: 'Tickets retrieved successfully',
-      data,
+      data: rows.map(serializeTicketListRow),
       pagination: {
-        page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        hasMore,
+        nextCursor,
+        ...(query.includeTotal ? { total: total ?? 0 } : {}),
       },
     };
   }

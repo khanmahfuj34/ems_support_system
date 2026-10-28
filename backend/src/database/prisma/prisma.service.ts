@@ -35,6 +35,20 @@ export class PrismaService
       );
       throw error;
     }
+
+    try {
+      const timeoutSetting = await this.$queryRaw<
+        { max_execution_time: number | bigint }[]
+      >`SELECT @@max_execution_time AS max_execution_time`;
+      if (timeoutSetting.length === 0) {
+        throw new Error('MySQL did not return @@max_execution_time');
+      }
+    } catch (error) {
+      throw new Error(
+        'Database startup check failed: ticket search statement timeouts require MySQL with @@max_execution_time. MariaDB is not supported by this timeout configuration.',
+        { cause: error },
+      );
+    }
   }
 
   async onModuleDestroy() {
