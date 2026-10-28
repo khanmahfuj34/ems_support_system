@@ -1,14 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 
 import { SearchExecutor } from '../search/common/search-executor.service.js';
+import { buildScopeConditions } from '../search/ticket-search/ticket-search.query.js';
 import { TicketsService } from './tickets.service.js';
 import { UserRoleId } from '../../common/decorators/roles.decorator.js';
 
 type FakeTicket = {
   id: bigint;
-  ticketNumber: string;
-  subject: string;
-  description: string;
   descriptionPreview: string;
   userId: bigint;
   categoryId: bigint;
@@ -24,11 +22,8 @@ type FakeTicket = {
   closedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  category: { id: bigint; name: string } | null;
-  subCategory: { id: bigint; name: string } | null;
   status: { id: number; name: string } | null;
   slaPolicy: null;
-  user: { name: string; email: string };
 };
 
 const dataset: FakeTicket[] = [];
@@ -76,9 +71,6 @@ function makeTicket(
 
   return {
     id: BigInt(index + 1),
-    ticketNumber: `EMS-${String(index + 1).padStart(4, '0')}`,
-    subject: `Subject ${index + 1}`,
-    description: `<p>Description ${index + 1}</p>`,
     descriptionPreview: `Description ${index + 1}`,
     userId: BigInt(101),
     categoryId: BigInt(1),
@@ -94,11 +86,8 @@ function makeTicket(
     closedAt: null,
     createdAt,
     updatedAt: createdAt,
-    category: { id: BigInt(1), name: 'Hardware' },
-    subCategory: null,
     status: { id: 2, name: 'PENDING_REVIEW' },
     slaPolicy: null,
-    user: { name: `User ${index + 1}`, email: `user${index + 1}@example.test` },
     ...overrides,
   };
 }
@@ -112,12 +101,6 @@ function addTickets(
   }
 }
 
-function contains(actual: unknown, expected: unknown): boolean {
-  return String(actual ?? '')
-    .toLowerCase()
-    .includes(String(expected).toLowerCase());
-}
-
 function compareFilter(actual: unknown, expected: unknown): boolean {
   if (
     expected &&
@@ -126,10 +109,6 @@ function compareFilter(actual: unknown, expected: unknown): boolean {
     !Array.isArray(expected)
   ) {
     const filter = expected as Record<string, unknown>;
-
-    if ('contains' in filter) {
-      return contains(actual, filter.contains);
-    }
 
     if ('in' in filter) {
       const candidates = filter.in as unknown[];
@@ -214,41 +193,33 @@ function matchesWhere(
         return row.adminPriority === value;
       case 'userPriority':
         return row.userPriority === value;
-      case 'subject':
-        return compareFilter(row.subject, value);
-      case 'description':
-        return compareFilter(row.description, value);
-      case 'ticketNumber':
-        return compareFilter(row.ticketNumber, value);
-      case 'category': {
-        const name = (value as { name?: { contains?: string } }).name
-          ?.contains;
-        return name !== undefined && row.category
-          ? contains(row.category.name, name)
-          : false;
-      }
-      case 'subCategory': {
-        const name = (value as { name?: { contains?: string } }).name
-          ?.contains;
-        return name !== undefined && row.subCategory
-          ? contains(row.subCategory.name, name)
-          : false;
-      }
-      case 'user': {
-        const userFilter = value as {
-          name?: { contains?: string };
-          email?: { contains?: string };
-        };
-        return (
-          (userFilter.name?.contains !== undefined &&
-            contains(row.user.name, userFilter.name.contains)) ||
-          (userFilter.email?.contains !== undefined &&
-            contains(row.user.email, userFilter.email.contains))
-        );
-      }
       default:
         throw new Error(`Unsupported where key in test fake: ${key}`);
     }
+  });
+}
+
+function matchesRawScope(
+  row: FakeTicket,
+  conditions: ReturnType<typeof buildScopeConditions>,
+): boolean {
+  return conditions.every((condition) => {
+    const sql = condition.sql;
+    const value = condition.values[0];
+
+    if (sql.startsWith('t.status_id =')) return row.statusId === value;
+    if (sql.startsWith('t.category_id =')) return row.categoryId === value;
+    if (sql.startsWith('COALESCE(t.admin_priority, t.user_priority) =')) {
+      return (row.adminPriority ?? row.userPriority) === value;
+    }
+    if (sql.startsWith('t.created_at >=') && value instanceof Date) {
+      return row.createdAt >= value;
+    }
+    if (sql.startsWith('t.created_at <=') && value instanceof Date) {
+      return row.createdAt <= value;
+    }
+
+    throw new Error(`Unsupported raw scope condition: ${sql}`);
   });
 }
 
@@ -523,6 +494,50 @@ describe('TicketsService.list cursor pagination', () => {
 
     expect(ids).toEqual(expected);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('selects the same tickets for non-search and ticket-search scope filters', async () => {
+    addTickets(9, (index) => ({
+      categoryId: index % 2 === 0 ? BigInt(2) : BigInt(1),
+      statusId: index % 3 === 2 ? 4 : 2,
+      userPriority: index % 2 === 0 ? 'HIGH' : 'LOW',
+      adminPriority: index === 4 ? 'MEDIUM' : null,
+    }));
+    const service = createService();
+    const createdFrom = new Date(
+      Date.UTC(2026, 0, 1, 0, 0, 2),
+    ).toISOString();
+    const createdTo = new Date(
+      Date.UTC(2026, 0, 1, 0, 0, 8),
+    ).toISOString();
+    const filters = {
+      statusId: 4,
+      categoryId: '2',
+      priority: 'HIGH' as const,
+      createdFrom,
+      createdTo,
+    };
+
+    await service.list(admin, filters);
+
+    const prismaWhere = prismaMock.ticket.findMany.mock.calls[0][0]
+      .where as Record<string, unknown>;
+    const prismaIds = dataset
+      .filter((row) => matchesWhere(row, prismaWhere))
+      .map((row) => row.id.toString());
+    const rawScope = buildScopeConditions({
+      statusId: filters.statusId,
+      categoryId: BigInt(filters.categoryId),
+      priority: filters.priority as never,
+      createdFrom: new Date(filters.createdFrom),
+      createdTo: new Date(filters.createdTo),
+    });
+    const rawSqlIds = dataset
+      .filter((row) => matchesRawScope(row, rawScope))
+      .map((row) => row.id.toString());
+
+    expect(rawSqlIds).toEqual(prismaIds);
+    expect(prismaIds).toEqual(['3', '9']);
   });
 
   it('keeps createdFrom applied on every cursor page', async () => {

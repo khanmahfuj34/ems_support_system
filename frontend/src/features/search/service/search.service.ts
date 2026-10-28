@@ -3,6 +3,8 @@ import { API_ENDPOINTS } from "@/lib/api/endpoints";
 import type {
   SearchTicketsParams,
   SearchTicketsResponse,
+  SearchUsersParams,
+  SearchUsersResponse,
 } from "../types/search.types";
 
 /**
@@ -39,6 +41,26 @@ export async function searchTickets(
         ...(params.statusId !== undefined ? { statusId: params.statusId } : {}),
         ...(params.priority ? { priority: params.priority } : {}),
         ...(params.categoryId ? { categoryId: params.categoryId } : {}),
+      },
+      signal,
+    },
+  );
+
+  return data;
+}
+
+/** Admin-only user search; backend authorization remains authoritative. */
+export async function searchUsers(
+  params: SearchUsersParams,
+  signal?: AbortSignal,
+): Promise<SearchUsersResponse> {
+  const { data } = await apiClient.get<SearchUsersResponse>(
+    API_ENDPOINTS.admin.users.search,
+    {
+      params: {
+        search: params.search.trim(),
+        limit: params.limit ?? 5,
+        ...(params.cursor ? { cursor: params.cursor } : {}),
       },
       signal,
     },

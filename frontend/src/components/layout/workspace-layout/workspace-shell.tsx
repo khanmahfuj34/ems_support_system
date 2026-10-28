@@ -250,7 +250,12 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
           {/* Global Ticket Search */}
           <GlobalSearch
             className="flex-1 max-w-[180px] min-w-0 sm:w-72 sm:max-w-none sm:flex-none xl:w-[420px]"
-            placeholder="Search tickets, categories, numbers..."
+            placeholder={
+              isAdmin
+                ? "Search tickets, users, email, or ID..."
+                : "Search tickets, categories, numbers..."
+            }
+            isAdmin={isAdmin}
           />
 
           {/* Right Section: Notification & User Profile */}

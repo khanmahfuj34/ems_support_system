@@ -10,7 +10,7 @@ const DB_UNAVAILABLE_CODES = new Set([
   'ETIMEDOUT',
 ]);
 
-export function isDatabaseUnavailableError(error: unknown): boolean {
+function isDatabaseUnavailableError(error: unknown): boolean {
   const pending: unknown[] = [error];
   const seen = new Set<object>();
 

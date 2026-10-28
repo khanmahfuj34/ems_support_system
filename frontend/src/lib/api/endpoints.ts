@@ -14,6 +14,11 @@ export const API_ENDPOINTS = {
   admin: {
     acceptTicket: (id: string) => `/admin/tickets/${id}/accept`,
     rejectTicket: (id: string) => `/admin/tickets/${id}/reject`,
+    users: {
+      search: "/admin/users",
+      profile: (id: string) => `/admin/users/${id}`,
+      tickets: (id: string) => `/admin/users/${id}/tickets`,
+    },
   },
   uploads: {
     create: "/uploads",

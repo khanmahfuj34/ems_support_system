@@ -9,6 +9,7 @@ import {
   prefixPattern,
   wordPrefixPattern,
 } from '../common/search-normalization.js';
+import { intSql } from '../common/search-sql.js';
 import { LOOKUP_ID_LIMIT, REQUESTER_ID_LIMIT } from '../search.constants.js';
 import type {
   TicketLookupIds,
@@ -35,8 +36,6 @@ const sortColumn = (sortBy: TicketSortField) =>
   Prisma.raw(sortBy === 'updatedAt' ? 't.updated_at' : 't.created_at');
 const direction = (order: TicketSortOrder) =>
   Prisma.raw(order === 'desc' ? 'DESC' : 'ASC');
-const intSql = (value: number) => Prisma.raw(String(Math.trunc(value)));
-
 export const refValue = (ref: TicketRef, sortBy: TicketSortField): Date =>
   sortBy === 'updatedAt' ? ref.updatedAt : ref.createdAt;
 

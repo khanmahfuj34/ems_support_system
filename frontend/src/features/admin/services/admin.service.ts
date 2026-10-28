@@ -5,6 +5,8 @@ import type { TicketPriority } from "@/features/tickets/types/ticket.types";
 import type {
   AdminTicketListResponse,
   AdminTicketReviewResponse,
+  AdminUserProfileResponse,
+  AdminUserTicketHistoryResponse,
 } from "../types/admin.types";
 
 /**
@@ -107,6 +109,37 @@ export async function rejectTicket(
   const { data } = await apiClient.patch<AdminTicketReviewResponse>(
     API_ENDPOINTS.admin.rejectTicket(ticketId),
     { reason },
+  );
+
+  return data;
+}
+
+export async function getAdminUserProfile(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<AdminUserProfileResponse> {
+  const { data } = await apiClient.get<AdminUserProfileResponse>(
+    API_ENDPOINTS.admin.users.profile(userId),
+    { signal },
+  );
+
+  return data;
+}
+
+export async function listAdminUserTickets(
+  userId: string,
+  options?: { limit?: number; cursor?: string | null },
+  signal?: AbortSignal,
+): Promise<AdminUserTicketHistoryResponse> {
+  const { data } = await apiClient.get<AdminUserTicketHistoryResponse>(
+    API_ENDPOINTS.admin.users.tickets(userId),
+    {
+      params: {
+        limit: options?.limit ?? 10,
+        ...(options?.cursor ? { cursor: options.cursor } : {}),
+      },
+      signal,
+    },
   );
 
   return data;

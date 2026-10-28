@@ -26,6 +26,15 @@ export interface SearchTicketItem {
   status?: SearchTicketStatus | null;
 }
 
+export interface SearchUserItem {
+  id: string;
+  name: string;
+  email: string;
+  roleId: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface SearchTicketsParams {
   search: string;
   limit?: number;
@@ -45,5 +54,17 @@ export interface SearchTicketsPagination {
 export interface SearchTicketsResponse {
   message: string;
   data: SearchTicketItem[];
+  pagination: SearchTicketsPagination;
+}
+
+export interface SearchUsersParams {
+  search: string;
+  limit?: number;
+  cursor?: string | null;
+}
+
+export interface SearchUsersResponse {
+  message: string;
+  data: SearchUserItem[];
   pagination: SearchTicketsPagination;
 }

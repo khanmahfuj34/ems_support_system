@@ -49,3 +49,41 @@ export interface AcceptTicketResponse {
   message: string;
   data: AdminTicketReviewResponse["data"];
 }
+
+export interface AdminUserProfile {
+  id: string;
+  name: string;
+  email: string;
+  roleId: number;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  role: { id: number; name: string };
+}
+
+export interface AdminUserProfileResponse {
+  message: string;
+  data: AdminUserProfile;
+}
+
+export interface AdminUserTicketHistoryItem {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  userPriority: TicketPriority;
+  adminPriority: TicketPriority | null;
+  statusId: number;
+  status: { id: number; name: string } | null;
+  createdAt: string;
+}
+
+export interface AdminUserTicketHistoryResponse {
+  message: string;
+  data: AdminUserTicketHistoryItem[];
+  pagination: {
+    limit: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+    total?: number;
+  };
+}

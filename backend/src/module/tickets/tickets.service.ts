@@ -11,6 +11,8 @@ import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { UserRoleId } from '../../common/decorators/roles.decorator.js';
 import { SearchExecutor } from '../search/common/search-executor.service.js';
 import { TicketSearchService } from '../search/ticket-search/ticket-search.service.js';
+import { DEFAULT_PAGE_SIZE } from '../search/search.constants.js';
+import { clampLimit } from '../search/common/search-pagination.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto.js';
 import {
@@ -280,7 +282,7 @@ export class TicketsService {
       return this.ticketSearch.search(user, query);
     }
 
-    const limit = query.limit ?? 10;
+    const limit = clampLimit(query.limit ?? DEFAULT_PAGE_SIZE);
     const sortBy = query.sortBy ?? 'createdAt';
     const sortOrder = query.sortOrder ?? 'desc';
     const isAdmin = Number(user.roleId) === UserRoleId.ADMIN;

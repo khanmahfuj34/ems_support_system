@@ -6,9 +6,7 @@ import { GlobalSearchService } from './global-search/global-search.service.js';
 import { TicketSearchService } from './ticket-search/ticket-search.service.js';
 import { UserSearchService } from './user-search/user-search.service.js';
 
-/**
- * Add a SearchController to `controllers` once an endpoint calls these services.
- */
+/** Focused search services are exported for the feature controllers. */
 @Module({
   imports: [PrismaModule],
   providers: [

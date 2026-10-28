@@ -15,10 +15,6 @@ import {
   encodeTicketCursor,
   type TicketCursorScope,
 } from '../../tickets/utils/ticket-cursor.js';
-import {
-  serializeTicketListRow,
-  TICKET_LIST_SELECT,
-} from '../../tickets/utils/ticket-list.mapper.js';
 import { SearchExecutor } from '../common/search-executor.service.js';
 import {
   normalizeSearchTerm,
@@ -35,6 +31,7 @@ import {
   findUserIds,
   USER_LIST_SELECT,
   USER_PROFILE_SELECT,
+  USER_TICKET_HISTORY_SELECT,
 } from './user-search.query.js';
 import type {
   UserSearchInput,
@@ -108,12 +105,13 @@ export class UserSearchService {
   /** Step 2: the profile page header. One row, no tickets. */
   async getProfile(actor: SearchActor, userId: string) {
     this.assertAdmin(actor);
-    if (!/^[1-9]\d*$/.test(userId)) {
+    const parsedUserId = parsePositiveBigInt(userId);
+    if (parsedUserId === null) {
       throw new BadRequestException('Invalid user ID');
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(userId) },
+      where: { id: parsedUserId },
       select: USER_PROFILE_SELECT,
     });
     if (!user) throw new NotFoundException('User not found');
@@ -134,13 +132,14 @@ export class UserSearchService {
     input: UserTicketsInput,
   ) {
     this.assertAdmin(actor);
-    if (!/^[1-9]\d*$/.test(userId)) {
+    const parsedUserId = parsePositiveBigInt(userId);
+    if (parsedUserId === null) {
       throw new BadRequestException('Invalid user ID');
     }
 
     const limit = clampLimit(input.limit);
     const sortOrder = input.sortOrder ?? 'desc';
-    const ownerId = BigInt(userId);
+    const ownerId = parsedUserId;
 
     const scope: TicketCursorScope = {
       sortBy: 'createdAt',
@@ -168,7 +167,7 @@ export class UserSearchService {
         where,
         orderBy: [{ createdAt: sortOrder }, { id: sortOrder }],
         take: limit + 1,
-        select: TICKET_LIST_SELECT,
+        select: USER_TICKET_HISTORY_SELECT,
       }),
       // Cheap: counted through the user_id index, first page only.
       input.cursor
@@ -182,7 +181,16 @@ export class UserSearchService {
 
     return {
       message: 'User tickets retrieved successfully',
-      data: pageRows.map(serializeTicketListRow),
+      data: pageRows.map((ticket) => ({
+        id: ticket.id.toString(),
+        ticketNumber: ticket.ticketNumber,
+        subject: ticket.subject,
+        statusId: ticket.statusId,
+        status: ticket.status,
+        userPriority: ticket.userPriority,
+        adminPriority: ticket.adminPriority,
+        createdAt: ticket.createdAt,
+      })),
       pagination: {
         limit,
         hasMore,

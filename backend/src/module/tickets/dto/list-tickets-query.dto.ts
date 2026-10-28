@@ -11,18 +11,20 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-
-const TICKET_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
-const SORT_FIELDS = ['createdAt', 'updatedAt'] as const;
-const SORT_ORDERS = ['asc', 'desc'] as const;
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../search/search.constants.js';
+import { USER_TICKET_PRIORITIES } from './create-ticket.dto.js';
+import {
+  TICKET_SORT_FIELDS,
+  TICKET_SORT_ORDERS,
+} from '../utils/ticket-cursor.js';
 
 export class ListTicketsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
-  limit?: number = 10;
+  @Max(MAX_PAGE_SIZE)
+  limit?: number = DEFAULT_PAGE_SIZE;
 
   /**
    * Opaque keyset cursor returned as `pagination.nextCursor`. Offset/page
@@ -40,8 +42,8 @@ export class ListTicketsQueryDto {
   statusId?: number;
 
   @IsOptional()
-  @IsIn(TICKET_PRIORITIES)
-  priority?: (typeof TICKET_PRIORITIES)[number];
+  @IsIn(USER_TICKET_PRIORITIES)
+  priority?: (typeof USER_TICKET_PRIORITIES)[number];
 
   @IsOptional()
   @Transform(({ value }) =>
@@ -53,12 +55,12 @@ export class ListTicketsQueryDto {
   categoryId?: string;
 
   @IsOptional()
-  @IsIn(SORT_FIELDS)
-  sortBy?: (typeof SORT_FIELDS)[number] = 'createdAt';
+  @IsIn(TICKET_SORT_FIELDS)
+  sortBy?: (typeof TICKET_SORT_FIELDS)[number] = 'createdAt';
 
   @IsOptional()
-  @IsIn(SORT_ORDERS)
-  sortOrder?: (typeof SORT_ORDERS)[number] = 'desc';
+  @IsIn(TICKET_SORT_ORDERS)
+  sortOrder?: (typeof TICKET_SORT_ORDERS)[number] = 'desc';
 
   @IsOptional()
   @IsISO8601()

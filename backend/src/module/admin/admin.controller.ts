@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,9 @@ import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { AdminService } from './admin.service.js';
 import { RejectTicketDto } from './dto/reject-ticket.dto.js';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto.js';
+import { SearchUsersQueryDto } from './dto/search-users-query.dto.js';
+import { UserTicketsQueryDto } from './dto/user-tickets-query.dto.js';
+import { UserSearchService } from '../search/user-search/user-search.service.js';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -32,13 +36,41 @@ interface AuthenticatedRequest extends Request {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRoleId.ADMIN)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly userSearch: UserSearchService,
+  ) {}
 
   @Get('test')
   getAdminTest() {
     return {
       message: 'Admin authorization successful',
     };
+  }
+
+  @Get('users')
+  searchUsers(
+    @Req() request: AuthenticatedRequest,
+    @Query() query: SearchUsersQueryDto,
+  ) {
+    return this.userSearch.searchUsers(request.user, query);
+  }
+
+  @Get('users/:id')
+  getUserProfile(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.userSearch.getProfile(request.user, id);
+  }
+
+  @Get('users/:id/tickets')
+  listUserTickets(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+    @Query() query: UserTicketsQueryDto,
+  ) {
+    return this.userSearch.listTickets(request.user, id, query);
   }
 
   @Patch('tickets/:id/accept')

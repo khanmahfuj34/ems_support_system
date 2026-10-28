@@ -90,6 +90,9 @@ Use the lockfile/package manager already present. Don't update dependencies sole
 - Ticket search uses the cursor-paginated API with server-side admin filters; global search shows the backend's plain-text description preview.
 - Notifications use the shared notification hook and API for unread state, paging, mark-read actions, and ticket navigation.
 - The admin overview dashboard uses live ticket API data with loading, empty, retry, and narrow-layout states.
+- Global search now shows cursor-paginated admin user results alongside the existing ticket results; user lookup uses the guarded admin API and links to `/admin/users/:id`.
+- The `/admin/users/:id` route is protected by the admin layout and loads the safe profile fields plus cursor-paginated ticket history from the guarded admin APIs.
+- The root body suppresses hydration warnings for browser-extension attributes injected before React hydrates.
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know

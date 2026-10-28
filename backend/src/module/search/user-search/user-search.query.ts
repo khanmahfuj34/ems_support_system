@@ -1,9 +1,7 @@
 import { Prisma } from '@prisma/client';
 
-import {
-  prefixPattern,
-  wordPrefixPattern,
-} from '../common/search-normalization.js';
+import { containsPattern } from '../common/search-normalization.js';
+import { intSql } from '../common/search-sql.js';
 
 /** Light user columns: no passwords, no relations. */
 export const USER_LIST_SELECT = {
@@ -18,12 +16,25 @@ export const USER_LIST_SELECT = {
 export const USER_PROFILE_SELECT = {
   ...USER_LIST_SELECT,
   lastLoginAt: true,
+  role: { select: { id: true, name: true } },
 } satisfies Prisma.UserSelect;
 
+/** Minimal fields for a user's ticket history page. */
+export const USER_TICKET_HISTORY_SELECT = {
+  id: true,
+  ticketNumber: true,
+  subject: true,
+  userPriority: true,
+  adminPriority: true,
+  statusId: true,
+  createdAt: true,
+  status: { select: { id: true, name: true } },
+} satisfies Prisma.TicketSelect;
+
 /**
- * Ids of users matching: exact id, name starts with / any word starts with,
- * email starts with. Newest id first, keyset by id.
- * (email has a unique index. name has none: add @@index([name]) in schema.)
+ * Ids of users matching a name or email substring, or an exact numeric id.
+ * Newest id first, keyset by id. The query returns one bounded page and is
+ * protected by the search executor's statement timeout.
  */
 export async function findUserIds(
   db: Prisma.TransactionClient,
@@ -32,10 +43,10 @@ export async function findUserIds(
   afterId: bigint | undefined,
   take: number,
 ): Promise<bigint[]> {
+  const contains = containsPattern(term);
   const parts: Prisma.Sql[] = [
-    Prisma.sql`u.name LIKE ${prefixPattern(term)} ESCAPE '!'`,
-    Prisma.sql`u.name LIKE ${wordPrefixPattern(term)} ESCAPE '!'`,
-    Prisma.sql`u.email LIKE ${prefixPattern(term)} ESCAPE '!'`,
+    Prisma.sql`u.name LIKE ${contains} ESCAPE '!'`,
+    Prisma.sql`u.email LIKE ${contains} ESCAPE '!'`,
   ];
   if (numericId !== null) parts.push(Prisma.sql`u.id = ${numericId}`);
 
@@ -47,7 +58,7 @@ export async function findUserIds(
     FROM users u
     WHERE (${Prisma.join(parts, ' OR ')}) ${after}
     ORDER BY u.id DESC
-    LIMIT ${Prisma.raw(String(Math.trunc(take)))}`;
+    LIMIT ${intSql(take)}`;
 
   return rows.map((row) => BigInt(row.id));
 }
