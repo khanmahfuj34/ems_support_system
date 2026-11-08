@@ -90,7 +90,7 @@ export function AuthBrandPanel() {
         </div>
 
         <div>
-          <h1 className="text-4xl leading-11 font-bold tracking-[-0.02em] text-white font-[family-name:var(--font-auth-jakarta)] mb-2">
+          <h1 className="text-4xl leading-11 font-bold tracking-[-0.02em] text-white mb-2">
             Your Learning Journey Starts Here
           </h1>
           <p className="text-base text-[#dce9ff]/90 font-normal leading-relaxed">

@@ -109,7 +109,7 @@ export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
           <div className="w-8 h-8 rounded bg-[#070235] text-white flex items-center justify-center">
             <BookOpen className="size-4" strokeWidth={2} />
           </div>
-          <span className="text-base font-bold text-[#070235] tracking-tight font-[family-name:var(--font-auth-jakarta)]">
+          <span className="text-base font-bold text-[#070235] tracking-tight">
             EduLearn
           </span>
         </div>
@@ -147,7 +147,7 @@ export function LoginForm({ adminOnly = false }: { adminOnly?: boolean }) {
         <div className="w-full max-w-md mx-auto">
           {/* Authentication header */}
           <div className="mb-8">
-            <h2 className="text-2xl leading-8 font-bold text-[#070235] tracking-[-0.015em] font-[family-name:var(--font-auth-jakarta)]">
+            <h2 className="text-2xl leading-8 font-bold text-[#070235] tracking-[-0.015em]">
               {adminOnly ? "Administrator Sign In" : "Welcome Back"}
             </h2>
             <p className="text-sm leading-5 text-[#47464f] mt-1.5">

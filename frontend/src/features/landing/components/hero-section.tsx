@@ -33,7 +33,7 @@ export function HeroSection() {
             </span>
           </div>
           {/* Main headline */}
-          <h1 className="font-[family-name:var(--font-landing-jakarta)] text-[28px] leading-9 md:text-5xl md:leading-none font-bold text-white tracking-tight md:tracking-[-0.025em] mb-6">
+          <h1 className="text-[28px] leading-9 md:text-5xl md:leading-none font-bold text-white tracking-tight md:tracking-[-0.025em] mb-6">
             Empowering Education, <br className="hidden sm:inline" />
             Inspiring Futures
           </h1>

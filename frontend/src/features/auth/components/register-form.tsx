@@ -106,7 +106,7 @@ export function RegisterForm() {
           <div className="w-8 h-8 rounded bg-[#1e1b4b] text-white flex items-center justify-center">
             <BookOpen className="size-4" strokeWidth={2} />
           </div>
-          <span className="text-base font-bold text-[#070235] tracking-tight font-[family-name:var(--font-auth-jakarta)]">
+          <span className="text-base font-bold text-[#070235] tracking-tight">
             Aethel Academy
           </span>
         </div>
@@ -150,7 +150,7 @@ export function RegisterForm() {
         <div className="w-full max-w-md mx-auto">
           {/* Form header */}
           <div className="mb-6">
-            <h2 className="text-2xl leading-8 font-bold text-[#070235] tracking-[-0.015em] font-[family-name:var(--font-auth-jakarta)]">
+            <h2 className="text-2xl leading-8 font-bold text-[#070235] tracking-[-0.015em]">
               Create Your Account
             </h2>
             <p className="text-sm leading-5 text-[#47464f] mt-1">Join our learning community.</p>

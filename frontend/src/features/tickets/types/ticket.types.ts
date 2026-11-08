@@ -45,6 +45,58 @@ export interface CreateTicketResponse {
   data: TicketResponseData;
 }
 
+/** Row shape of GET /api/v1/tickets list responses (no full description). */
+export interface TicketListRow {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  descriptionPreview: string;
+  userId: string;
+  userPriority: TicketPriority;
+  adminPriority: TicketPriority | null;
+  statusId: number;
+  slaStatus: number;
+  firstResponseAt: string | null;
+  firstResponseDueAt: string | null;
+  resolutionDueAt: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: string; name: string } | null;
+  subCategory: { id: string; name: string } | null;
+  status: { id: number; name: string } | null;
+  slaPolicy: {
+    id: string;
+    priority: TicketPriority;
+    firstResponseMinutes: number;
+    resolutionMinutes: number;
+  } | null;
+}
+
+export interface TicketListParams {
+  limit?: number;
+  cursor?: string | null;
+  statusId?: number;
+  priority?: TicketPriority;
+  categoryId?: string;
+  search?: string;
+  sortBy?: "createdAt" | "updatedAt";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface TicketListResponse {
+  message: string;
+  data: TicketListRow[];
+  pagination: {
+    limit: number;
+    hasMore: boolean;
+    nextCursor: string | null;
+    /** Present only when the request explicitly asks for `includeTotal`. */
+    total?: number;
+  };
+}
+
 export interface TicketDetailCategory {
   id: string;
   name: string;

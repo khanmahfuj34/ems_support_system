@@ -41,9 +41,9 @@ export function HighlightCards() {
         {HIGHLIGHT_CARDS.map((card) => (
           <div
             key={card.title}
-            className="bg-white dark:bg-[#1e1b4b] p-6 rounded-xl border border-[#c8c5d0]/40 dark:border-[#787680]/20 shadow-[0_1px_3px_rgba(23,19,65,0.08),0_8px_24px_rgba(23,19,65,0.10)] hover:shadow-md transition-all duration-200 group"
+            className="bg-gradient-to-br from-[#f5f3ff] via-[#ede9fe] to-[#e3ddfb] dark:from-[#2a2160] dark:via-[#241b55] dark:to-[#1b1445] p-6 rounded-xl border border-[#d6d1f5] dark:border-white/15 shadow-[0_1px_3px_rgba(23,19,65,0.08),0_8px_24px_rgba(91,61,240,0.12)] hover:shadow-[0_2px_8px_rgba(23,19,65,0.10),0_12px_32px_rgba(91,61,240,0.18)] transition-all duration-200 group"
           >
-            <div className="w-12 h-12 rounded-lg bg-[#eff4ff] dark:bg-white/10 text-[#006591] dark:text-[#89ceff] flex items-center justify-center mb-4 group-hover:bg-[#006591] dark:group-hover:bg-[#006591] group-hover:text-white transition-colors">
+            <div className="w-12 h-12 rounded-lg bg-white/80 dark:bg-white/10 text-[#5b3df0] dark:text-[#c4b5fd] flex items-center justify-center mb-4 group-hover:bg-[#5b3df0] dark:group-hover:bg-[#7a5af8] group-hover:text-white transition-colors">
               <card.icon className="size-6" strokeWidth={1.8} />
             </div>
             <h2 className="text-lg leading-6 font-semibold tracking-[-0.005em] text-[#070235] dark:text-[#f8f9ff] mb-1.5">
